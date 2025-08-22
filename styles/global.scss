@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: MonumentExtended;
+  src: url(../assets/fonts/MonumentExtended/monument-extended-regular.otf);
+}
+@font-face {
+  font-family: PPMonumentExtended;
+  src: url(../assets/fonts/MonumentExtended/PPMonumentExtended-Regular.otf);
+}
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+html {
+  background: #f6f6f6 !important;
+}
+
+body {
+  width: 100vw;
+  height: 100vh;
+  font-family: var(--font-inter);
+  background-color: #f6f6f6 !important;
+  color: #000;
+  overscroll-behavior: none;
+  background-size: cover;
+}
+
+svg {
+  flex-shrink: 0;
+}
+
+@keyframes spinning {
+  40% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(2700deg);
+  }
+}
+
+@keyframes breathing {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes seaWaving {
+  100% {
+    transform: translateX(50%);
+  }
+}
