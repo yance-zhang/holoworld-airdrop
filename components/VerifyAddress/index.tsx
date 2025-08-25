@@ -42,7 +42,7 @@ export const InputAddress: FC<{
         {showButton ? (
           <button
             className={clsx(
-              'btn btn-xs h-7 w-16 rounded-md text-xs text-black/95 font-bold !bg-transparent',
+              'btn btn-xs h-7 w-[140px] rounded-md border-none text-xs text-black/95 font-bold !bg-transparent',
               value ? '' : 'opacity-35',
             )}
             style={{
@@ -52,7 +52,7 @@ export const InputAddress: FC<{
             }}
             onClick={handleAdd}
           >
-            <AddIcon /> Add
+            <AddIcon /> Connect Wallet
           </button>
         ) : null}
       </label>
@@ -70,7 +70,7 @@ export const InputAddress: FC<{
                 : '',
           }}
         >
-          Add Another Wallet
+          Connect Another Wallet
         </button>
       ) : null}
     </div>
@@ -177,7 +177,11 @@ const VerifyAddress: FC = () => {
                   key={address}
                   className="flex items-center justify-between px-4 py-2.5 bg-white/90 border-black/5 border rounded-xl"
                 >
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 font-semibold text-sm">
+                    <span className="flex items-center gap-0.5">
+                      {networkTab === 'SOL' ? <SolIcon /> : <BnbIcon />}
+                      {networkTab}:
+                    </span>
                     <span className="font-semibold text-sm text-black/90">
                       {address}
                     </span>
