@@ -1,4 +1,6 @@
 import Layout from '@/components/layout';
+import { SolanaWalletProvider } from '@/components/SolanaWalletProvider';
+import { AppStoreProvider } from '@/context/AppStoreContext';
 import { ToastProvider } from '@/context/ToastContext';
 import '@/styles/global.scss';
 import { config } from '@/utils/wagmiConfig';
@@ -23,16 +25,20 @@ const App = ({ Component, pageProps, router }: AppProps) => {
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <ToastProvider>
-            <LayoutComponent>
-              <Head>
-                <meta
-                  name="viewport"
-                  content="width=device-width,minimum-scale=1,maximum-scale=1,user-scalable=no"
-                />
-                <link rel="icon" href="/favicon.ico" sizes="any" />
-              </Head>
-              <Component {...pageProps} />
-            </LayoutComponent>
+            <SolanaWalletProvider>
+              <AppStoreProvider>
+                <LayoutComponent>
+                  <Head>
+                    <meta
+                      name="viewport"
+                      content="width=device-width,minimum-scale=1,maximum-scale=1,user-scalable=no"
+                    />
+                    <link rel="icon" href="/favicon.ico" sizes="any" />
+                  </Head>
+                  <Component {...pageProps} />
+                </LayoutComponent>
+              </AppStoreProvider>
+            </SolanaWalletProvider>
           </ToastProvider>
         </QueryClientProvider>
       </WagmiProvider>

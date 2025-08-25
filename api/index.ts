@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 export const BaseUrl = `${process.env.NEXT_PUBLIC_API_URL}/api`;
+export const IS_DEV = !BaseUrl.includes('mainnet');
 
 axios.defaults.baseURL = BaseUrl;
 

@@ -2,13 +2,14 @@ import WarningIcon from '@/assets/images/airdrop/warning.svg';
 import CloseIcon from '@/assets/images/wallets/close.svg';
 import { FC } from 'react';
 import { createPortal } from 'react-dom';
-import { InputAddress } from '../VerifyAddress';
+import { InputAddress } from '../VerifyAddress/inputAddress';
 
 const AddWalletModal: FC<{
   open: boolean;
+  network: string;
   onClose: () => void;
-  onConfirm: (address: string) => void;
-}> = ({ open, onClose, onConfirm }) => {
+  onConfirm: (address: string, network: string) => void;
+}> = ({ open, network, onClose, onConfirm }) => {
   return createPortal(
     <dialog open={open} className="modal bg-black/50">
       <div className="modal-box w-[440px] max-w-[440px] p-6 bg-[#F6F6F6] rounded-[20px]">
@@ -36,11 +37,12 @@ const AddWalletModal: FC<{
           </span>
 
           <InputAddress
-            onAdd={(addr) => {
-              onConfirm(addr);
+            onAdd={(addr, network) => {
+              onConfirm(addr, network);
               onClose();
             }}
             showButton={false}
+            network={network}
           />
         </div>
       </div>
