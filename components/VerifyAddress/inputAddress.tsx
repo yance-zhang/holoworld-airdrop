@@ -26,7 +26,14 @@ export const InputAddress: FC<{
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="font-semibold text-sm">Verify Wallet Address*</span>
+      <div className="flex flex-col gap-0.5">
+        <span className="font-semibold text-sm">
+          Verify Wallet Address To Claim From*
+        </span>
+        <span className="font-medium text-xs text-black/65">
+          Connect eligible wallets to claim $HOLO
+        </span>
+      </div>
       <label className="input input-sm flex items-center gap-2 h-10 bg-black/5 max-w-full w-[522px]">
         <input
           type="text"

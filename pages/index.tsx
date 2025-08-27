@@ -9,7 +9,8 @@ import Cube from '@/assets/images/airdrop/cube.png';
 import Envelope from '@/assets/images/airdrop/envelope.png';
 import BackCube from '@/assets/images/airdrop/backcube.png';
 import Image from 'next/image';
-import { FC } from 'react';
+import { FC, useState } from 'react';
+import EligibleCheck from '@/components/EligibleCheck';
 
 const eligibleGroups = [
   {
@@ -46,6 +47,10 @@ const eligibleGroups = [
 ];
 
 const Home: FC = () => {
+  const [state, setState] = useState<'check' | 'claim'>('check');
+
+  const completeCheck = () => setState('claim');
+
   return (
     <div className="relative flex flex-col items-center py-7 gap-8 w-full max-w-[826px]">
       <div className="hidden lg:block z-[100] pointer-events-none">
@@ -96,7 +101,8 @@ const Home: FC = () => {
           </div>
         </div>
         <div className="w-full py-8 bg-white/35 border-2 border-white rounded-3xl backdrop-blur-3xl">
-          <VerifyAddress />
+          {state === 'check' && <EligibleCheck completeCheck={completeCheck} />}
+          {state === 'claim' && <VerifyAddress />}
         </div>
       </div>
 
