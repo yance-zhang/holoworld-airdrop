@@ -1,3 +1,6 @@
+import BackCube from '@/assets/images/airdrop/backcube.png';
+import Cube from '@/assets/images/airdrop/cube.png';
+import Envelope from '@/assets/images/airdrop/envelope.png';
 import Eligible1 from '@/assets/images/layout/eligible-1.svg';
 import Eligible2 from '@/assets/images/layout/eligible-2.svg';
 import Eligible3 from '@/assets/images/layout/eligible-3.svg';
@@ -5,12 +8,8 @@ import Eligible4 from '@/assets/images/layout/eligible-4.svg';
 import Eligible5 from '@/assets/images/layout/eligible-5.svg';
 import Eligible6 from '@/assets/images/layout/eligible-6.svg';
 import VerifyAddress from '@/components/VerifyAddress';
-import Cube from '@/assets/images/airdrop/cube.png';
-import Envelope from '@/assets/images/airdrop/envelope.png';
-import BackCube from '@/assets/images/airdrop/backcube.png';
 import Image from 'next/image';
-import { FC, Fragment, useState } from 'react';
-import EligibleCheck from '@/components/EligibleCheck';
+import { FC, useState } from 'react';
 
 const eligibleGroups = [
   {
