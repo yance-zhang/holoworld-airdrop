@@ -17,6 +17,7 @@ import ClaimModal from '../ClaimModal';
 import { InputAddress } from './inputAddress';
 import { useAirdropClaimOnSolana } from '@/contract/solana';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 const NetworkTabs = [
   { name: 'SOL', icon: SolIcon },
@@ -60,7 +61,12 @@ const AirdropItem: FC<{
         >
           <span className="font-medium text-sm text-black/80">
             <b className="font-bold text-black">
-              {formatBalanceNumber(formatEther(BigInt(airdrop.amount)))} $HOLO
+              {formatBalanceNumber(
+                network === 'BNB'
+                  ? formatEther(BigInt(airdrop.amount))
+                  : Number(airdrop.amount) / LAMPORTS_PER_SOL,
+              )}{' '}
+              $HOLO
             </b>
           </span>
           <ArrowDown
@@ -243,21 +249,24 @@ const VerifyAddress: FC = () => {
       />
       {/* address list */}
       <div className="flex flex-col items-center w-full">
-        <div className="flex items-center justify-between h-[83px] w-[698px] px-6 rounded-2xl border border-white bg-white/35">
-          <span className="font-semibold text-sm">Total Eligible Token</span>
-          <span className="flex items-end font-[PPMonumentExtended]">
-            <span className="font-bold text-[30px]">
-              {formatBalanceNumber(formatEther(totalAmount))}
+        {networkTab === 'BNB' && (
+          <div className="flex items-center justify-between h-[83px] w-[698px] px-6 rounded-2xl border border-white bg-white/35">
+            <span className="font-semibold text-sm">Total Eligible Token</span>
+            <span className="flex items-end font-[PPMonumentExtended]">
+              <span className="font-bold text-[30px]">
+                {formatBalanceNumber(formatEther(totalAmount))}
+              </span>
+              <span className="font-medium text-xs text-black/80">$HOLO</span>
             </span>
-            <span className="font-medium text-xs text-black/80">$HOLO</span>
-          </span>
-        </div>
+          </div>
+        )}
         <div className="flex flex-col w-[650px] py-3 gap-4 px-16 bg-white/80 rounded-b-2xl">
           <div className="flex items-center justify-center gap-1 text-sm font-medium">
             <WalletIcon className="w-4 h-4 text-black/90" />
             Verified{' '}
             <b className="font-bold text-black">
-              <b className="text-[#08EDDF]">{verifiedCount}</b>/10
+              <b className="text-[#08EDDF]">{verifiedCount}</b>/
+              {networkTab === 'SOL' ? 1 : 10}
             </b>{' '}
             wallets
           </div>
@@ -278,7 +287,10 @@ const VerifyAddress: FC = () => {
         <button
           className="btn mt-3 w-[360px] rounded-full border-none text-black/95 font-bold text-sm"
           onClick={handleClaim}
-          disabled={networkTab === 'BNB' && evmAddressList.length === 0}
+          disabled={
+            (networkTab === 'BNB' && evmAddressList.length === 0) ||
+            (networkTab === 'SOL' && !publicKey)
+          }
           style={{
             background:
               'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
@@ -290,10 +302,14 @@ const VerifyAddress: FC = () => {
         </button>
       </div>
 
-      <div className="flex items-center justify-center gap-1 text-sm font-medium">
+      {/* <div className="flex items-center justify-center gap-1 text-sm font-medium">
         <WalletIcon className="w-4 h-4 text-black/90" />
-        Verify up to <b className="font-bold text-black">10</b> wallets
-      </div>
+        Verify up to{' '}
+        <b className="font-bold text-black">
+          {networkTab === 'SOL' ? 1 : 10}
+        </b>{' '}
+        wallets
+      </div> */}
 
       <AddWalletModal
         open={addWalletOpen}

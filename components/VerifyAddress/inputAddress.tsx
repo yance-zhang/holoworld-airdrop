@@ -1,6 +1,7 @@
 import AddIcon from '@/assets/images/airdrop/add.svg';
 import { useAppStore } from '@/context/AppStoreContext';
 import { useToast } from '@/context/ToastContext';
+import { useWallet } from '@solana/wallet-adapter-react';
 import clsx from 'clsx';
 import { FC, useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
@@ -12,6 +13,8 @@ export const InputAddress: FC<{
   onAdd: (address: string, network: string) => void;
 }> = ({ showButton, network, receiver, onAdd }) => {
   const { addToast } = useToast();
+  const { publicKey } = useWallet();
+  const { address } = useAccount();
   const { openEvm, openSol } = useAppStore();
   const [value, setValue] = useState<string>('');
 
@@ -32,7 +35,7 @@ export const InputAddress: FC<{
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 w-[522px]">
       <div className="flex flex-col gap-0.5">
         <span className="font-semibold text-sm">
           Verify Wallet Address To Claim From*
@@ -41,32 +44,29 @@ export const InputAddress: FC<{
           Connect eligible wallets to claim $HOLO
         </span>
       </div>
-      <label className="input input-sm flex items-center gap-2 h-10 bg-black/5 max-w-full w-[522px]">
-        <input
-          type="text"
-          className="h-full w-full font-medium text-xs"
-          placeholder="Enter and verify wallet address to claim airdrop"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-        />
-
-        {showButton ? (
-          <button
-            className={clsx(
-              'btn btn-xs h-7 w-[140px] rounded-md border-none text-xs text-black/95 font-bold !bg-transparent',
-              value ? '' : 'opacity-35',
-            )}
-            style={{
-              background: value
-                ? 'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)'
-                : '',
-            }}
-            onClick={handleAdd}
-          >
-            <AddIcon /> Connect Wallet
-          </button>
-        ) : null}
-      </label>
+      {network === 'SOL' && publicKey ? null : (
+        <label className="input input-sm flex items-center justify-between gap-2 h-10 bg-black/5 max-w-full w-[522px]">
+          <span className="text-xs font-medium">
+            {network === 'SOL' ? publicKey?.toBase58() : address}
+          </span>
+          {showButton ? (
+            <button
+              className={clsx(
+                'btn btn-xs h-7 w-[140px] rounded-md border-none text-xs text-black/95 font-bold !bg-transparent',
+                value ? '' : 'opacity-35',
+              )}
+              style={{
+                background: value
+                  ? 'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)'
+                  : '',
+              }}
+              onClick={handleAdd}
+            >
+              <AddIcon /> Connect Wallet
+            </button>
+          ) : null}
+        </label>
+      )}
       {!showButton ? (
         <button
           className={clsx(

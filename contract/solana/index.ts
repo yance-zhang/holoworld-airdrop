@@ -8,11 +8,15 @@ import {
 } from '@solana/spl-token';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import {
+  AddressLookupTableAccount,
   ComputeBudgetProgram,
   PublicKey,
   SystemProgram,
   SYSVAR_INSTRUCTIONS_PUBKEY,
   Transaction,
+  TransactionError,
+  TransactionMessage,
+  VersionedTransaction,
 } from '@solana/web3.js';
 import { webcrypto } from 'crypto';
 import { useSignMessage } from 'wagmi';
@@ -24,6 +28,10 @@ export const PROGRAMID_DEVNET = new PublicKey(
 
 export const airdropTokenMint = new PublicKey(
   '4NqFVbozeU6a4kCoc79kWS4H5ZW4VgtuSDjKx9vqFQUg',
+);
+
+export const lutAddress = new PublicKey(
+  '4K7a1wXeosvGWB3hDES3VAA4WfjBg45V7wzQbTUZ32im',
 );
 
 export const MERKLE_ROOT_SEEDS = Buffer.from('merkle_root');
@@ -69,7 +77,8 @@ export function newTransactionWithComputeUnitPriceAndLimit(): Transaction {
 }
 
 export const useAirdropClaimOnSolana = () => {
-  const { publicKey, sendTransaction, signMessage } = useWallet();
+  const { publicKey, sendTransaction, signMessage, signTransaction } =
+    useWallet();
   const { connection } = useConnection();
   const { signMessageAsync } = useSignMessage();
 
@@ -157,6 +166,17 @@ export const useAirdropClaimOnSolana = () => {
     );
     console.log('userTokenVault: ', userTokenVault.toBase58());
 
+    console.log('正在从链上获取地址查找表账户...');
+    const lookupTableAccountResponse =
+      await connection.getAddressLookupTable(lutAddress);
+
+    const lookupTableAccount: AddressLookupTableAccount | null =
+      lookupTableAccountResponse.value;
+
+    if (!lookupTableAccount) {
+      throw new Error(`无法在链上找到地址查找表: ${lutAddress.toBase58()}`);
+    }
+
     let tx = newTransactionWithComputeUnitPriceAndLimit();
 
     const [claimRecord, claimRecordBump] = PublicKey.findProgramAddressSync(
@@ -199,10 +219,60 @@ export const useAirdropClaimOnSolana = () => {
       .instruction();
     tx.add(inst);
 
+    const { blockhash } = await connection.getLatestBlockhash();
+
+    console.log(`blockhash: ${blockhash}`);
+
+    const messageV0 = new TransactionMessage({
+      payerKey: publicKey,
+      recentBlockhash: blockhash,
+      instructions: tx.instructions,
+    }).compileToV0Message([lookupTableAccount]);
+
+    const versionedTx = new VersionedTransaction(messageV0);
+    const serializedTx = versionedTx.serialize();
+    const txSize = serializedTx.length;
+
+    console.log(`✅ 这笔版本化交易的大小是: ${txSize} 字节`);
+
+    let signature = '';
+
     try {
-      await sendTransaction(tx, connection);
-    } catch (error) {
+      // Sign transaction with wallet
+      if (!signTransaction) {
+        throw new Error('Wallet does not support transaction signing');
+      }
+      const signedTx = await signTransaction(versionedTx);
+
+      // Send transaction
+      signature = await connection.sendRawTransaction(signedTx.serialize());
+      console.log(`Transaction sent: ${signature}`);
+
+      // Confirm transaction
+      const confirmation = await connection.confirmTransaction(
+        signature,
+        'confirmed',
+      );
+      console.log('Transaction confirmed:', confirmation);
+
+      return signature;
+    } catch (error: any) {
       console.error(error);
+      // Handle SendTransactionError and fetch logs
+      if (error.name === 'SendTransactionError') {
+        const txError = error as TransactionError;
+        const logs = await connection.getTransaction(signature, {
+          commitment: 'confirmed',
+          maxSupportedTransactionVersion: 0,
+        });
+        console.error(
+          'Detailed transaction logs:',
+          logs?.meta?.logMessages || [],
+        );
+        throw new Error(
+          `SendTransactionError: ${error.message}, Logs: ${JSON.stringify(logs?.meta?.logMessages || [])}`,
+        );
+      }
     }
   };
 
