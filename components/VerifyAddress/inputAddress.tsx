@@ -1,5 +1,6 @@
 import AddIcon from '@/assets/images/airdrop/add.svg';
 import { useAppStore } from '@/context/AppStoreContext';
+import { useToast } from '@/context/ToastContext';
 import clsx from 'clsx';
 import { FC, useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
@@ -7,13 +8,19 @@ import { useAccount } from 'wagmi';
 export const InputAddress: FC<{
   showButton: boolean;
   network: string;
+  receiver?: string;
   onAdd: (address: string, network: string) => void;
-}> = ({ showButton, network, onAdd }) => {
+}> = ({ showButton, network, receiver, onAdd }) => {
+  const { addToast } = useToast();
   const { openEvm, openSol } = useAppStore();
   const [value, setValue] = useState<string>('');
 
   const handleAdd = () => {
     if (network === 'BNB') {
+      if (!receiver) {
+        addToast('Please enter receiver address.', 'warning');
+        return;
+      }
       openEvm();
       // onAdd(value, 'BNB');
     }

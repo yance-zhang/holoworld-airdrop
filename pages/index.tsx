@@ -101,8 +101,9 @@ const Home: FC = () => {
           </div>
         </div>
         <div className="w-full py-8 bg-white/35 border-2 border-white rounded-3xl backdrop-blur-3xl">
-          {state === 'check' && <EligibleCheck completeCheck={completeCheck} />}
-          {state === 'claim' && <VerifyAddress />}
+          {/* {state === 'check' && <EligibleCheck completeCheck={completeCheck} />} */}
+          {/* {state === 'claim' && <VerifyAddress />} */}
+          <VerifyAddress />
         </div>
       </div>
 

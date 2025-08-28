@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const BaseUrl = `${process.env.NEXT_PUBLIC_API_URL}/api`;
+export const BaseUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 export const IS_DEV = !BaseUrl.includes('mainnet');
 
 axios.defaults.baseURL = BaseUrl;
@@ -41,4 +41,25 @@ type Response<T> = {
 export type PageParams = {
   page: number;
   size: number;
+};
+
+export type AirdropProof = {
+  address: string;
+  amount: string;
+  proof: string[];
+  index: number;
+  detail: {
+    launch_agent_token?: string;
+    burn_airdrop?: string;
+    nft_holder?: string;
+    stake_airdrop?: string;
+  };
+};
+
+export const getBscAirdropProofApi = async (address: string) => {
+  return axios.get<AirdropProof>(`/merkle_proof/bsc/${address}`);
+};
+
+export const getSolanaAirdropProofApi = async (address: string) => {
+  return axios.get<AirdropProof>(`/merkle_proof/solana/${address}`);
 };

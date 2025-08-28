@@ -1,5 +1,5 @@
 import CloseIcon from '@/assets/images/wallets/close.svg';
-import { FC, useEffect } from 'react';
+import { FC, useEffect, useRef } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 
 const ConnectWallet: FC<{
@@ -10,11 +10,13 @@ const ConnectWallet: FC<{
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
   const { connectors, connect } = useConnect();
+  const lastConnectedAddress = useRef<string | null>(null);
 
   const filteredConnectors = connectors.filter((c) => c.name !== 'Injected');
 
   useEffect(() => {
-    if (address) {
+    if (address && address !== lastConnectedAddress.current) {
+      lastConnectedAddress.current = address;
       onConnected(address);
     }
   }, [address, onConnected]);
@@ -44,7 +46,10 @@ const ConnectWallet: FC<{
                     {
                       onSuccess: (info) => {
                         onClose();
-                        onConnected(info.accounts[0]);
+                        if (info.accounts[0] !== lastConnectedAddress.current) {
+                          lastConnectedAddress.current = info.accounts[0];
+                          onConnected(info.accounts[0]);
+                        }
                       },
                     },
                   )

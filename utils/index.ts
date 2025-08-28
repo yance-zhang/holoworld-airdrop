@@ -32,19 +32,21 @@ export const formatNumber = (num: number = 0, precision: number = 3) => {
   return num.toString();
 };
 
-export const formatBalanceNumber = (num: number = 0, precision: number = 3) => {
-  if (!num) {
+export const formatBalanceNumber = (
+  num: number | string,
+  precision: number = 2,
+) => {
+  if (!num || !Number(num)) {
     return '0';
   }
 
   const baseNumber = Math.pow(10, precision);
 
-  const balance = (Math.floor(num * baseNumber) / baseNumber).toLocaleString(
-    'en-US',
-    {
-      minimumFractionDigits: precision,
-    },
-  );
+  const balance = (
+    Math.floor(Number(num) * baseNumber) / baseNumber
+  ).toLocaleString('en-US', {
+    minimumFractionDigits: precision,
+  });
 
   return balance;
 };

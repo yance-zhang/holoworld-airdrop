@@ -7,25 +7,30 @@ import AddWalletModal from '../AddWalletModal';
 import ClaimModal from '../ClaimModal';
 import { InputAddress } from './inputAddress';
 import { useAppStore } from '@/context/AppStoreContext';
-import { shortenAddress } from '@/utils';
+import { formatBalanceNumber, shortenAddress } from '@/utils';
 import clsx from 'clsx';
 import ArrowDown from '@/assets/images/airdrop/arrow-down.svg';
+import { useToast } from '@/context/ToastContext';
+import { AirdropProof } from '@/api';
+import { formatEther } from 'viem';
+import { useDisconnect } from 'wagmi';
+import { useAirdropClaimOnBSC } from '@/contract/bnb';
 
 const NetworkTabs = [
   { name: 'SOL', icon: SolIcon },
   { name: 'BNB', icon: BnbIcon },
 ];
 
-const AddressItem: FC<{
-  address: string;
+const AirdropItem: FC<{
+  airdrop: AirdropProof;
   network: string;
   defaultOpen: boolean;
-}> = ({ address, network, defaultOpen }) => {
+}> = ({ airdrop, network, defaultOpen }) => {
+  const { disconnect } = useDisconnect();
   const [showDetail, setShowDetail] = useState<boolean>(defaultOpen);
 
   return (
     <div
-      key={address}
       className={clsx(
         'flex flex-col items-stretch p-[1px] rounded-xl transition-all bg-[#00000005]',
         showDetail ? 'h-[118px]' : 'h-[42px]',
@@ -38,9 +43,12 @@ const AddressItem: FC<{
             {network}:
           </span>
           <span className="font-semibold text-sm text-black/90">
-            {shortenAddress(address)}
+            {shortenAddress(airdrop.address)}
           </span>
-          <span className="inline-flex w-7 h-7 items-center justify-center rounded bg-black/5">
+          <span
+            onClick={() => disconnect()}
+            className="inline-flex w-7 h-7 items-center justify-center rounded bg-black/5"
+          >
             <UnconnectedIcon />
           </span>
         </div>
@@ -49,7 +57,9 @@ const AddressItem: FC<{
           className="flex items-center justify-between w-40 px-2 rounded-md bg-[#DAFF8052] cursor-pointer"
         >
           <span className="font-medium text-sm text-black/80">
-            <b className="font-bold text-black">1,234 $HOLO</b>
+            <b className="font-bold text-black">
+              {formatBalanceNumber(formatEther(BigInt(airdrop.amount)))} $HOLO
+            </b>
           </span>
           <ArrowDown
             className={clsx('transition-all', showDetail && 'rotate-180')}
@@ -62,13 +72,17 @@ const AddressItem: FC<{
             Eligible Types:
           </span>
           <div className="">
-            <span className="inline-block py-1.5 px-2 mr-2 rounded-md text-[#ACC220] font-semibold text-sm bg-[#DAFF8029]">
-              3D Pudgy Penguin Claimer{' '}
-              <span className="text-black/90">26 $HOLO</span>
-            </span>
-            <span className="inline-block py-1.5 px-2 mr-2 rounded-md text-[#ACC220] font-semibold text-sm bg-[#DAFF8029]">
-              Staked AVA <span className="text-black/90">160 $HOLO</span>
-            </span>
+            {Object.entries(airdrop.detail).map(([type, amount]) => (
+              <span
+                key={type}
+                className="inline-block py-1.5 px-2 mr-2 rounded-md text-[#ACC220] font-semibold text-sm bg-[#DAFF8029] capitalize"
+              >
+                {type.replaceAll('_', ' ')}{' '}
+                <span className="text-black/90">
+                  {formatBalanceNumber(amount)} $HOLO
+                </span>
+              </span>
+            ))}
           </div>
         </div>
       )}
@@ -77,11 +91,18 @@ const AddressItem: FC<{
 };
 
 const VerifyAddress: FC = () => {
-  const { evmAddressList, solAddressList } = useAppStore();
+  const { addToast } = useToast();
+  const {
+    evmAddressList,
+    solAddressList,
+    receiverAddress,
+    setReceiverAddress,
+    evmSignData,
+  } = useAppStore();
+  const { multiClaim } = useAirdropClaimOnBSC();
   const [networkTab, setNetworkTab] = useState(NetworkTabs[0].name);
   const [addWalletOpen, setAddWalletOpen] = useState<boolean>(false);
   const [claimOpen, setClaimOpen] = useState<boolean>(false);
-  const [receivingAddress, setReceivingAddress] = useState<string>('');
 
   const handleAddAddress = (addr: string, network: string) => {
     if (!addr) return;
@@ -94,11 +115,27 @@ const VerifyAddress: FC = () => {
     // }
   };
 
+  const claimOnBsc = async () => {
+    if (evmSignData.length === 0) {
+      return;
+    }
+    try {
+      const phase = 2;
+      const res = await multiClaim(phase, evmSignData);
+
+      console.log(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const handleClaim = () => {
     if (networkTab === 'SOL') {
-      setAddWalletOpen(true);
-    } else {
-      setClaimOpen(true);
+      // setAddWalletOpen(true);
+    }
+    if (networkTab === 'BNB') {
+      // setClaimOpen(true);
+      claimOnBsc();
     }
   };
 
@@ -159,13 +196,18 @@ const VerifyAddress: FC = () => {
             type="text"
             className="h-full w-full font-medium text-xs"
             placeholder="Enter and verify wallet address to claim airdrop"
-            value={receivingAddress}
-            onChange={(e) => setReceivingAddress(e.target.value)}
+            value={receiverAddress}
+            onChange={(e) => setReceiverAddress(e.target.value)}
           />
         </label>
       </div>
       {/* add address */}
-      <InputAddress onAdd={handleAddAddress} network={networkTab} showButton />
+      <InputAddress
+        onAdd={handleAddAddress}
+        network={networkTab}
+        receiver={receiverAddress}
+        showButton
+      />
       {/* address list */}
       <div className="flex flex-col items-center w-full">
         <div className="flex items-center justify-between h-[83px] w-[698px] px-6 rounded-2xl border border-white bg-white/35">
@@ -186,10 +228,10 @@ const VerifyAddress: FC = () => {
           </div>
           <div className="flex flex-col gap-3">
             {(networkTab === 'SOL' ? solAddressList : evmAddressList).map(
-              (address, index) => (
-                <AddressItem
-                  key={address}
-                  address={address}
+              (airdrop, index) => (
+                <AirdropItem
+                  key={airdrop.address}
+                  airdrop={airdrop}
                   defaultOpen={index === 0}
                   network={networkTab}
                 />

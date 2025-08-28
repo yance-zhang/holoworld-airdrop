@@ -10,23 +10,42 @@ import React, {
   useState,
 } from 'react';
 import ConnectEvmWallet from '../components/ConnectWallet';
+import {
+  AirdropProof,
+  getBscAirdropProofApi,
+  getSolanaAirdropProofApi,
+} from '@/api';
+import {
+  evmContractAddress,
+  SignData,
+  useGenerateAirdropSignature,
+} from '@/contract/bnb';
+import { useChainId } from 'wagmi';
+import { Address } from 'viem';
 
 interface AppStoreContextType {
+  receiverAddress: string;
+  setReceiverAddress: (address: string) => void;
   evmOpen: boolean;
   openEvm: () => void;
   closeEvm: () => void;
-  evmAddressList: string[];
+  evmAddressList: AirdropProof[];
+  evmSignData: SignData[];
   openSol: () => void;
   closeSol: () => void;
-  solAddressList: string[];
+  solAddressList: AirdropProof[];
 }
 
 const AppStoreContext = createContext<AppStoreContextType>({
+  receiverAddress: '',
+  setReceiverAddress(address) {},
   // evm
   evmOpen: false,
   evmAddressList: [],
+  evmSignData: [],
   openEvm: () => {},
   closeEvm: () => {},
+
   // sol
   openSol: () => {},
   closeSol: () => {},
@@ -37,24 +56,49 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   // EVM
+  const { generateSignature, signature } = useGenerateAirdropSignature();
+  const chainId = useChainId();
+  const [receiverAddress, setReceiverAddress] = useState<string>('');
   const [evmOpen, setEvmOpen] = useState<boolean>(false);
-  const [evmAddressList, setEvmAddressList] = useState<string[]>([]);
+  const [evmAddressList, setEvmAddressList] = useState<AirdropProof[]>([]);
+  const [evmSignData, setEvmSignData] = useState<SignData[]>([]);
 
   const openEvm = () => setEvmOpen(true);
 
   const closeEvm = () => setEvmOpen(false);
 
-  const onEvmConnected = (address: string) => {
-    if (evmAddressList.find((addr) => addr === address)) {
-      return;
-    }
-    setEvmAddressList([...evmAddressList, address]);
-  };
+  const onEvmConnected = useCallback(
+    async (address: string) => {
+      const index = evmAddressList.findIndex(
+        (addr) => addr.address === address,
+      );
+      if (index > -1 || !receiverAddress) {
+        return;
+      }
+      const res = await getBscAirdropProofApi(address);
+
+      const signData = await generateSignature({
+        chainId: BigInt(chainId),
+        contractAddress: evmContractAddress,
+        receiverAddress: receiverAddress as Address,
+        amount: BigInt(res.amount),
+        proof: res.proof as any[],
+        expiredAt: Math.floor(Date.now() / 1000) + 3600,
+      });
+
+      if (signData) {
+        setEvmSignData([...evmSignData, signData]);
+      }
+
+      setEvmAddressList([...evmAddressList, res]);
+    },
+    [chainId, evmAddressList, evmSignData, generateSignature, receiverAddress],
+  );
 
   // SOL
   const { setVisible } = useWalletModal();
   const { publicKey } = useWallet();
-  const [solAddressList, setSolAddressList] = useState<string[]>([]);
+  const [solAddressList, setSolAddressList] = useState<AirdropProof[]>([]);
 
   const openSol = () => {
     setVisible(true);
@@ -63,11 +107,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const closeSol = () => setVisible(false);
 
   const onSolConnected = useCallback(
-    (address: string) => {
-      if (solAddressList.find((addr) => addr === address)) {
+    async (address: string) => {
+      if (solAddressList.find((addr) => addr.address === address)) {
         return;
       }
-      setSolAddressList([...solAddressList, address]);
+      const res = await getSolanaAirdropProofApi(address);
+      setSolAddressList([...solAddressList, res]);
     },
     [solAddressList],
   );
@@ -81,10 +126,13 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <AppStoreContext.Provider
       value={{
+        receiverAddress,
+        setReceiverAddress,
         openEvm,
         closeEvm,
         evmOpen,
         evmAddressList,
+        evmSignData,
         openSol,
         closeSol,
         solAddressList,

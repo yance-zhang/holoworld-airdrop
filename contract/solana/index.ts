@@ -1,0 +1,352 @@
+// hooks/useAirdrop.ts
+import Phase1Proof from '@/contract/solana/phase1_proof.json';
+import { BN, Idl, Program, web3 } from '@coral-xyz/anchor';
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddressSync,
+  TOKEN_PROGRAM_ID,
+} from '@solana/spl-token';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import {
+  ComputeBudgetProgram,
+  PublicKey,
+  SystemProgram,
+  SYSVAR_INSTRUCTIONS_PUBKEY,
+  Transaction,
+} from '@solana/web3.js';
+import { useSignMessage } from 'wagmi';
+import IDL from './holo_token_airdrop_solana.json';
+
+export const PROGRAMID_DEVNET = new PublicKey(
+  'CFgjprV4jBBPD1yKjfADGE9nbtR3HhZ9fWCeYTHa4SbS',
+);
+
+export const airdropTokenMint = new PublicKey(
+  '4NqFVbozeU6a4kCoc79kWS4H5ZW4VgtuSDjKx9vqFQUg',
+);
+
+export const MERKLE_ROOT_SEEDS = Buffer.from('merkle_root');
+export const CLAIM_RECORD_SEEDS = Buffer.from('claim_record');
+
+// Type definitions based on IDL
+interface ClaimRecord {
+  bump: number;
+  phase: number;
+  user: PublicKey;
+  amount: BN;
+  token: PublicKey;
+  receiver: PublicKey;
+}
+
+interface ClaimAirdropEvent {
+  user: PublicKey;
+  token: PublicKey;
+  amount: BN;
+  receiver: PublicKey;
+}
+
+interface merkleRoot {
+  merkle_root: string;
+  leaves: {
+    [key: string]: {
+      amount: string;
+      proof: string[];
+      index: number;
+    };
+  };
+}
+
+function getProofByUser(user: PublicKey):
+  | {
+      amount: string;
+      proof: string[];
+      index: number;
+    }
+  | undefined {
+  const merkleInfo: merkleRoot = Phase1Proof;
+
+  return merkleInfo.leaves[user.toBase58()];
+}
+
+export function newTransactionWithComputeUnitPriceAndLimit(): Transaction {
+  return new Transaction().add(
+    ComputeBudgetProgram.setComputeUnitLimit({
+      units: 1000000,
+    }),
+    ComputeBudgetProgram.setComputeUnitPrice({
+      microLamports: 30000,
+    }),
+  );
+}
+
+export const useAirdropClaimOnSolana = () => {
+  const { publicKey, sendTransaction, signMessage } = useWallet();
+  const { connection } = useConnection();
+  const { signMessageAsync } = useSignMessage();
+
+  async function sha256(data: Uint8Array): Promise<Uint8Array> {
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return new Uint8Array(hash);
+  }
+
+  async function signClaimReward(
+    proof: Buffer,
+    receiver: PublicKey,
+    expireAt: bigint,
+  ): Promise<{ data: Uint8Array; signature: Uint8Array }> {
+    if (!signMessage) {
+      throw new Error('Sign message error');
+    }
+    let data = Buffer.alloc(8);
+    data.writeBigInt64LE(expireAt, 0);
+
+    const proofHash = await sha256(proof);
+
+    data = Buffer.concat([proofHash, receiver.toBytes(), data]);
+
+    const dataHash = await sha256(data);
+    const signature = await signMessage(dataHash);
+
+    //   console.log("Signature:", Buffer.from(signature).toString("base64"));
+    return { data: Uint8Array.from(dataHash), signature };
+  }
+
+  const claimAirdrop = async ({
+    receiverAddress,
+  }: {
+    receiverAddress: string;
+  }) => {
+    if (!publicKey) {
+      return;
+    }
+    const program = new Program(IDL as Idl, {
+      connection,
+    });
+
+    const phase = new BN(2);
+    const receiver = new PublicKey(receiverAddress);
+
+    const [merkleRoot, merkleRootBump] = PublicKey.findProgramAddressSync(
+      [
+        MERKLE_ROOT_SEEDS,
+        phase.toArrayLike(Buffer, 'le', 1),
+        airdropTokenMint.toBuffer(),
+      ],
+      program.programId,
+    );
+    console.log(
+      'merkle_root(init), bump: ',
+      merkleRoot.toBase58(),
+      merkleRootBump,
+    );
+
+    const merkleRootInfo = await (program.account as any).merkleRoot.fetch(
+      merkleRoot,
+    );
+    console.log('merkleRootInfo: ', JSON.stringify(merkleRootInfo));
+
+    console.log(
+      'merkleRoot: ',
+      Buffer.from(merkleRootInfo.merkleRoot).toString('hex'),
+    );
+
+    const merkleTokenVault = getAssociatedTokenAddressSync(
+      airdropTokenMint,
+      merkleRoot,
+      true,
+      TOKEN_PROGRAM_ID,
+    );
+    console.log('merkleTokenVault: ', merkleTokenVault.toBase58());
+
+    const userTokenVault = getAssociatedTokenAddressSync(
+      airdropTokenMint,
+      receiver,
+      true,
+      TOKEN_PROGRAM_ID,
+    );
+    console.log('userTokenVault: ', userTokenVault.toBase58());
+
+    let tx = newTransactionWithComputeUnitPriceAndLimit();
+
+    const proofInfo = getProofByUser(publicKey)!;
+
+    const [claimRecord, claimRecordBump] = PublicKey.findProgramAddressSync(
+      [
+        CLAIM_RECORD_SEEDS,
+        phase.toArrayLike(Buffer, 'le', 1),
+        publicKey.toBuffer(),
+        airdropTokenMint.toBuffer(),
+      ],
+      program.programId,
+    );
+    console.log(
+      'claim record(init), bump: ',
+      claimRecord.toBase58(),
+      claimRecordBump,
+    );
+
+    const proof = proofInfo.proof.map((x) => Buffer.from(x, 'hex'));
+    const proofBuf = Buffer.concat(proof);
+
+    const inst = await program.methods
+      .claimAirdrop(
+        phase,
+        new BN(proofInfo.amount), // amount
+        proofBuf, // proof hash
+        new BN(proofInfo.index), // leaves index
+      )
+      .accounts({
+        signer: publicKey,
+        airdropTokenMint: airdropTokenMint,
+        receiver: receiver,
+        merkleRoot: merkleRoot,
+        merkleTokenVault: merkleTokenVault,
+        userTokenVault: userTokenVault,
+        claimRecord: claimRecord,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
+    tx.add(inst);
+
+    try {
+      await sendTransaction(tx, connection);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const claimAirdropWithReceiver = async () => {
+    if (!publicKey) {
+      return;
+    }
+    const phase = new BN(1);
+    const amount = new BN(329000000000);
+    const expireAt = new BN(1756266564);
+
+    const program = new Program(IDL as Idl, {
+      connection,
+    });
+
+    const [merkleRoot, merkleRootBump] = PublicKey.findProgramAddressSync(
+      [
+        MERKLE_ROOT_SEEDS,
+        phase.toArrayLike(Buffer, 'le', 1),
+        airdropTokenMint.toBuffer(),
+      ],
+      program.programId,
+    );
+    console.log(
+      'merkle_root(init), bump: ',
+      merkleRoot.toBase58(),
+      merkleRootBump,
+    );
+
+    const merkleRootInfo = await (program.account as any).merkleRoot.fetch(
+      merkleRoot,
+    );
+    console.log('merkleRootInfo: ', JSON.stringify(merkleRootInfo));
+
+    console.log(
+      'merkleRoot: ',
+      Buffer.from(merkleRootInfo.merkleRoot).toString('hex'),
+    );
+
+    const merkleTokenVault = getAssociatedTokenAddressSync(
+      airdropTokenMint,
+      merkleRoot,
+      true,
+      TOKEN_PROGRAM_ID,
+    );
+    console.log('merkleTokenVault: ', merkleTokenVault.toBase58());
+
+    const userTokenVault = getAssociatedTokenAddressSync(
+      airdropTokenMint,
+      publicKey,
+      true,
+      TOKEN_PROGRAM_ID,
+    );
+    console.log('userTokenVault: ', userTokenVault.toBase58());
+
+    let tx = newTransactionWithComputeUnitPriceAndLimit();
+
+    let verifyInstIdx = 2;
+    for (let k of [publicKey]) {
+      const proofInfo = getProofByUser(publicKey)!;
+
+      const [claimRecord, claimRecordBump] = PublicKey.findProgramAddressSync(
+        [
+          CLAIM_RECORD_SEEDS,
+          phase.toArrayLike(Buffer, 'le', 1),
+          publicKey.toBuffer(),
+          airdropTokenMint.toBuffer(),
+        ],
+        program.programId,
+      );
+      console.log(
+        'claim record(init), bump: ',
+        claimRecord.toBase58(),
+        claimRecordBump,
+      );
+
+      const proof = proofInfo.proof.map((x) => Buffer.from(x, 'hex'));
+      const proofBuf = Buffer.concat(proof);
+
+      let { data, signature } = await signClaimReward(
+        proofBuf,
+        publicKey,
+        BigInt(expireAt.toString()),
+      );
+
+      const verifySignInst = web3.Ed25519Program.createInstructionWithPublicKey(
+        {
+          publicKey: publicKey.toBytes(),
+          message: data,
+          signature: signature,
+        },
+      );
+
+      tx.add(verifySignInst);
+
+      const inst = await program.methods
+        .claimAirdropWithReceiver(
+          phase,
+          publicKey,
+          new BN(proofInfo.amount), // amount
+          proofBuf, // proof hash
+          new BN(proofInfo.index), // leaves index
+          expireAt, // expireAt
+          signature,
+          new BN(verifyInstIdx), // verify_ix_index
+        )
+        .accounts({
+          signer: publicKey,
+          airdropTokenMint: airdropTokenMint,
+          merkleRoot: merkleRoot,
+          merkleTokenVault: merkleTokenVault,
+          userTokenVault: userTokenVault,
+          claimRecord: claimRecord,
+          ixSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+      tx.add(inst);
+
+      verifyInstIdx *= 2;
+    }
+
+    try {
+      await sendTransaction(tx, connection);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return {
+    claimAirdrop,
+    claimAirdropWithReceiver,
+  };
+};
