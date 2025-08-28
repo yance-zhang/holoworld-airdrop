@@ -1,5 +1,5 @@
 // hooks/useAirdrop.ts
-import Phase1Proof from '@/contract/solana/phase1_proof.json';
+import { AirdropProof } from '@/api';
 import { BN, Idl, Program, web3 } from '@coral-xyz/anchor';
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -14,6 +14,7 @@ import {
   SYSVAR_INSTRUCTIONS_PUBKEY,
   Transaction,
 } from '@solana/web3.js';
+import { webcrypto } from 'crypto';
 import { useSignMessage } from 'wagmi';
 import IDL from './holo_token_airdrop_solana.json';
 
@@ -56,18 +57,6 @@ interface merkleRoot {
   };
 }
 
-function getProofByUser(user: PublicKey):
-  | {
-      amount: string;
-      proof: string[];
-      index: number;
-    }
-  | undefined {
-  const merkleInfo: merkleRoot = Phase1Proof;
-
-  return merkleInfo.leaves[user.toBase58()];
-}
-
 export function newTransactionWithComputeUnitPriceAndLimit(): Transaction {
   return new Transaction().add(
     ComputeBudgetProgram.setComputeUnitLimit({
@@ -85,7 +74,7 @@ export const useAirdropClaimOnSolana = () => {
   const { signMessageAsync } = useSignMessage();
 
   async function sha256(data: Uint8Array): Promise<Uint8Array> {
-    const hash = await crypto.subtle.digest('SHA-256', data);
+    const hash = await webcrypto.subtle.digest('SHA-256', data);
     return new Uint8Array(hash);
   }
 
@@ -113,8 +102,10 @@ export const useAirdropClaimOnSolana = () => {
 
   const claimAirdrop = async ({
     receiverAddress,
+    proofInfo,
   }: {
     receiverAddress: string;
+    proofInfo: AirdropProof;
   }) => {
     if (!publicKey) {
       return;
@@ -123,7 +114,7 @@ export const useAirdropClaimOnSolana = () => {
       connection,
     });
 
-    const phase = new BN(2);
+    const phase = new BN(4);
     const receiver = new PublicKey(receiverAddress);
 
     const [merkleRoot, merkleRootBump] = PublicKey.findProgramAddressSync(
@@ -167,8 +158,6 @@ export const useAirdropClaimOnSolana = () => {
     console.log('userTokenVault: ', userTokenVault.toBase58());
 
     let tx = newTransactionWithComputeUnitPriceAndLimit();
-
-    const proofInfo = getProofByUser(publicKey)!;
 
     const [claimRecord, claimRecordBump] = PublicKey.findProgramAddressSync(
       [
@@ -217,13 +206,16 @@ export const useAirdropClaimOnSolana = () => {
     }
   };
 
-  const claimAirdropWithReceiver = async () => {
+  const claimAirdropWithReceiver = async ({
+    proofInfo,
+  }: {
+    proofInfo: AirdropProof;
+  }) => {
     if (!publicKey) {
       return;
     }
-    const phase = new BN(1);
-    const amount = new BN(329000000000);
-    const expireAt = new BN(1756266564);
+    const phase = new BN(4);
+    const expireAt = new BN(Math.floor(Date.now() / 1000) + 3600);
 
     const program = new Program(IDL as Idl, {
       connection,
@@ -272,71 +264,66 @@ export const useAirdropClaimOnSolana = () => {
     let tx = newTransactionWithComputeUnitPriceAndLimit();
 
     let verifyInstIdx = 2;
-    for (let k of [publicKey]) {
-      const proofInfo = getProofByUser(publicKey)!;
 
-      const [claimRecord, claimRecordBump] = PublicKey.findProgramAddressSync(
-        [
-          CLAIM_RECORD_SEEDS,
-          phase.toArrayLike(Buffer, 'le', 1),
-          publicKey.toBuffer(),
-          airdropTokenMint.toBuffer(),
-        ],
-        program.programId,
-      );
-      console.log(
-        'claim record(init), bump: ',
-        claimRecord.toBase58(),
-        claimRecordBump,
-      );
+    const [claimRecord, claimRecordBump] = PublicKey.findProgramAddressSync(
+      [
+        CLAIM_RECORD_SEEDS,
+        phase.toArrayLike(Buffer, 'le', 1),
+        publicKey.toBuffer(),
+        airdropTokenMint.toBuffer(),
+      ],
+      program.programId,
+    );
+    console.log(
+      'claim record(init), bump: ',
+      claimRecord.toBase58(),
+      claimRecordBump,
+    );
 
-      const proof = proofInfo.proof.map((x) => Buffer.from(x, 'hex'));
-      const proofBuf = Buffer.concat(proof);
+    const proof = proofInfo.proof.map((x) => Buffer.from(x, 'hex'));
+    const proofBuf = Buffer.concat(proof);
 
-      let { data, signature } = await signClaimReward(
-        proofBuf,
+    let { data, signature } = await signClaimReward(
+      proofBuf,
+      publicKey,
+      BigInt(expireAt.toString()),
+    );
+
+    const verifySignInst = web3.Ed25519Program.createInstructionWithPublicKey({
+      publicKey: publicKey.toBytes(),
+      message: data,
+      signature: signature,
+    });
+
+    tx.add(verifySignInst);
+
+    const inst = await program.methods
+      .claimAirdropWithReceiver(
+        phase,
         publicKey,
-        BigInt(expireAt.toString()),
-      );
+        new BN(proofInfo.amount), // amount
+        proofBuf, // proof hash
+        new BN(proofInfo.index), // leaves index
+        expireAt, // expireAt
+        signature,
+        new BN(verifyInstIdx), // verify_ix_index
+      )
+      .accounts({
+        signer: publicKey,
+        airdropTokenMint: airdropTokenMint,
+        merkleRoot: merkleRoot,
+        merkleTokenVault: merkleTokenVault,
+        userTokenVault: userTokenVault,
+        claimRecord: claimRecord,
+        ixSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
+    tx.add(inst);
 
-      const verifySignInst = web3.Ed25519Program.createInstructionWithPublicKey(
-        {
-          publicKey: publicKey.toBytes(),
-          message: data,
-          signature: signature,
-        },
-      );
-
-      tx.add(verifySignInst);
-
-      const inst = await program.methods
-        .claimAirdropWithReceiver(
-          phase,
-          publicKey,
-          new BN(proofInfo.amount), // amount
-          proofBuf, // proof hash
-          new BN(proofInfo.index), // leaves index
-          expireAt, // expireAt
-          signature,
-          new BN(verifyInstIdx), // verify_ix_index
-        )
-        .accounts({
-          signer: publicKey,
-          airdropTokenMint: airdropTokenMint,
-          merkleRoot: merkleRoot,
-          merkleTokenVault: merkleTokenVault,
-          userTokenVault: userTokenVault,
-          claimRecord: claimRecord,
-          ixSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        })
-        .instruction();
-      tx.add(inst);
-
-      verifyInstIdx *= 2;
-    }
+    verifyInstIdx *= 2;
 
     try {
       await sendTransaction(tx, connection);

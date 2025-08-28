@@ -54,6 +54,7 @@ export type AirdropProof = {
     nft_holder?: string;
     stake_airdrop?: string;
   };
+  error?: string;
 };
 
 export const getBscAirdropProofApi = async (address: string) => {

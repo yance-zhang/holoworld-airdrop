@@ -1,15 +1,5 @@
 'use client';
 
-import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
-import ConnectEvmWallet from '../components/ConnectWallet';
 import {
   AirdropProof,
   getBscAirdropProofApi,
@@ -20,8 +10,18 @@ import {
   SignData,
   useGenerateAirdropSignature,
 } from '@/contract/bnb';
-import { useChainId } from 'wagmi';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 import { Address } from 'viem';
+import { useChainId } from 'wagmi';
+import ConnectEvmWallet from '../components/ConnectWallet';
 
 interface AppStoreContextType {
   receiverAddress: string;
@@ -76,6 +76,10 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
       const res = await getBscAirdropProofApi(address);
+
+      if (res.error) {
+        return;
+      }
 
       const signData = await generateSignature({
         chainId: BigInt(chainId),

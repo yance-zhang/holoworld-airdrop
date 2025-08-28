@@ -1,20 +1,22 @@
+import { AirdropProof, getSolanaAirdropProofApi } from '@/api';
+import ArrowDown from '@/assets/images/airdrop/arrow-down.svg';
 import BnbIcon from '@/assets/images/airdrop/bnb.svg';
 import SolIcon from '@/assets/images/airdrop/sol.svg';
 import UnconnectedIcon from '@/assets/images/airdrop/unconnected.svg';
 import WalletIcon from '@/assets/images/layout/wallet.svg';
+import { useAppStore } from '@/context/AppStoreContext';
+import { useToast } from '@/context/ToastContext';
+import { useAirdropClaimOnBSC } from '@/contract/bnb';
+import { formatBalanceNumber, shortenAddress } from '@/utils';
+import clsx from 'clsx';
 import { FC, useState } from 'react';
+import { formatEther } from 'viem';
+import { useAccount, useDisconnect } from 'wagmi';
 import AddWalletModal from '../AddWalletModal';
 import ClaimModal from '../ClaimModal';
 import { InputAddress } from './inputAddress';
-import { useAppStore } from '@/context/AppStoreContext';
-import { formatBalanceNumber, shortenAddress } from '@/utils';
-import clsx from 'clsx';
-import ArrowDown from '@/assets/images/airdrop/arrow-down.svg';
-import { useToast } from '@/context/ToastContext';
-import { AirdropProof } from '@/api';
-import { formatEther } from 'viem';
-import { useDisconnect } from 'wagmi';
-import { useAirdropClaimOnBSC } from '@/contract/bnb';
+import { useAirdropClaimOnSolana } from '@/contract/solana';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 const NetworkTabs = [
   { name: 'SOL', icon: SolIcon },
@@ -97,9 +99,13 @@ const VerifyAddress: FC = () => {
     solAddressList,
     receiverAddress,
     setReceiverAddress,
+    openEvm,
     evmSignData,
   } = useAppStore();
   const { multiClaim } = useAirdropClaimOnBSC();
+  const { claimAirdrop } = useAirdropClaimOnSolana();
+  const { address } = useAccount();
+  const { publicKey } = useWallet();
   const [networkTab, setNetworkTab] = useState(NetworkTabs[0].name);
   const [addWalletOpen, setAddWalletOpen] = useState<boolean>(false);
   const [claimOpen, setClaimOpen] = useState<boolean>(false);
@@ -129,18 +135,45 @@ const VerifyAddress: FC = () => {
     }
   };
 
+  const claimOnSolana = async () => {
+    if (!publicKey) {
+      return;
+    }
+    try {
+      const proofInfo = await getSolanaAirdropProofApi(publicKey.toBase58());
+      console.log(proofInfo);
+
+      const res = await claimAirdrop({
+        receiverAddress,
+        proofInfo,
+      });
+      console.log(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const handleClaim = () => {
     if (networkTab === 'SOL') {
-      // setAddWalletOpen(true);
+      claimOnSolana();
     }
     if (networkTab === 'BNB') {
-      // setClaimOpen(true);
+      if (address !== receiverAddress) {
+        openEvm();
+        return;
+      }
       claimOnBsc();
     }
   };
 
   const verifiedCount =
     networkTab === 'SOL' ? solAddressList.length : evmAddressList.length;
+
+  const totalAmount = (
+    networkTab === 'SOL' ? solAddressList : evmAddressList
+  ).reduce((pre, cur) => {
+    return pre + BigInt(cur.amount);
+  }, 0n);
 
   return (
     <div className="flex flex-col items-center gap-6 w-full">
@@ -213,7 +246,9 @@ const VerifyAddress: FC = () => {
         <div className="flex items-center justify-between h-[83px] w-[698px] px-6 rounded-2xl border border-white bg-white/35">
           <span className="font-semibold text-sm">Total Eligible Token</span>
           <span className="flex items-end font-[PPMonumentExtended]">
-            <span className="font-bold text-[30px]">12,312</span>
+            <span className="font-bold text-[30px]">
+              {formatBalanceNumber(formatEther(totalAmount))}
+            </span>
             <span className="font-medium text-xs text-black/80">$HOLO</span>
           </span>
         </div>
@@ -243,12 +278,15 @@ const VerifyAddress: FC = () => {
         <button
           className="btn mt-3 w-[360px] rounded-full border-none text-black/95 font-bold text-sm"
           onClick={handleClaim}
+          disabled={networkTab === 'BNB' && evmAddressList.length === 0}
           style={{
             background:
               'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
           }}
         >
-          Claim Now
+          {networkTab === 'BNB' && receiverAddress !== address
+            ? 'Connect Receiver Account'
+            : 'Claim Now'}
         </button>
       </div>
 
