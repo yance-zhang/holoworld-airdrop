@@ -3,7 +3,7 @@ import { useAppStore } from '@/context/AppStoreContext';
 import { useToast } from '@/context/ToastContext';
 import { useWallet } from '@solana/wallet-adapter-react';
 import clsx from 'clsx';
-import { FC, useEffect, useState } from 'react';
+import { FC, useState } from 'react';
 import { useAccount } from 'wagmi';
 
 export const InputAddress: FC<{
@@ -19,11 +19,11 @@ export const InputAddress: FC<{
   const [value, setValue] = useState<string>('');
 
   const handleAdd = () => {
+    if (!receiver) {
+      addToast('Please enter receiver address.', 'warning');
+      return;
+    }
     if (network === 'BNB') {
-      if (!receiver) {
-        addToast('Please enter receiver address.', 'warning');
-        return;
-      }
       openEvm();
       // onAdd(value, 'BNB');
     }

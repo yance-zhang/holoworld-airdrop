@@ -19,7 +19,6 @@ import {
   VersionedTransaction,
 } from '@solana/web3.js';
 import { webcrypto } from 'crypto';
-import { useSignMessage } from 'wagmi';
 import IDL from './holo_token_airdrop_solana.json';
 
 export const PROGRAMID_DEVNET = new PublicKey(
@@ -80,7 +79,6 @@ export const useAirdropClaimOnSolana = () => {
   const { publicKey, sendTransaction, signMessage, signTransaction } =
     useWallet();
   const { connection } = useConnection();
-  const { signMessageAsync } = useSignMessage();
 
   async function sha256(data: Uint8Array): Promise<Uint8Array> {
     const hash = await webcrypto.subtle.digest('SHA-256', data);
