@@ -29,6 +29,13 @@
           "name": "airdrop_token_mint"
         },
         {
+          "name": "receiver",
+          "docs": [
+            "but only use its public key as an authority constraint.",
+            "The Anchor's associated_token constraint will ensure that the owner of the token account below is indeed this address."
+          ]
+        },
+        {
           "name": "merkle_root",
           "pda": {
             "seeds": [
@@ -123,7 +130,7 @@
             "seeds": [
               {
                 "kind": "account",
-                "path": "signer"
+                "path": "receiver"
               },
               {
                 "kind": "account",
