@@ -7,17 +7,17 @@ import WalletIcon from '@/assets/images/layout/wallet.svg';
 import { useAppStore } from '@/context/AppStoreContext';
 import { useToast } from '@/context/ToastContext';
 import { useAirdropClaimOnBSC } from '@/contract/bnb';
+import { useAirdropClaimOnSolana } from '@/contract/solana';
 import { formatBalanceNumber, shortenAddress } from '@/utils';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import clsx from 'clsx';
-import { FC, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { formatEther } from 'viem';
 import { useAccount, useDisconnect } from 'wagmi';
 import AddWalletModal from '../AddWalletModal';
 import ClaimModal from '../ClaimModal';
 import { InputAddress } from './inputAddress';
-import { useAirdropClaimOnSolana } from '@/contract/solana';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 const NetworkTabs = [
   { name: 'SOL', icon: SolIcon },
@@ -107,11 +107,13 @@ const VerifyAddress: FC = () => {
     setReceiverAddress,
     openEvm,
     evmSignData,
+    reset,
   } = useAppStore();
   const { multiClaim } = useAirdropClaimOnBSC();
   const { claimAirdrop } = useAirdropClaimOnSolana();
   const { address } = useAccount();
-  const { publicKey } = useWallet();
+  const { publicKey, disconnect: disconnectSolana } = useWallet();
+  const disconnectEvm = useDisconnect();
   const [networkTab, setNetworkTab] = useState(NetworkTabs[0].name);
   const [addWalletOpen, setAddWalletOpen] = useState<boolean>(false);
   const [claimOpen, setClaimOpen] = useState<boolean>(false);
@@ -172,6 +174,12 @@ const VerifyAddress: FC = () => {
     }
   };
 
+  useEffect(() => {
+    disconnectEvm.disconnect();
+    disconnectSolana();
+    reset();
+  }, []);
+
   const verifiedCount =
     networkTab === 'SOL' ? solAddressList.length : evmAddressList.length;
 
@@ -213,7 +221,17 @@ const VerifyAddress: FC = () => {
                 role="tab"
                 className={`tab gap-0.5 text-base rounded-full ${networkTab === network.name ? 'bg-[#FDFDFD] font-bold text-black/95' : 'text-[#0000005C] font-semibold'}`}
                 key={network.name}
-                onClick={() => setNetworkTab(network.name)}
+                onClick={() => {
+                  setNetworkTab(network.name);
+                  setReceiverAddress('');
+
+                  if (network.name === 'SOL') {
+                    disconnectEvm.disconnect();
+                  } else {
+                    disconnectSolana();
+                  }
+                  reset();
+                }}
               >
                 {network.icon && <network.icon />}
                 {network.name}

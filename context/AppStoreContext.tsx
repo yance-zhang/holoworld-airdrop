@@ -26,6 +26,7 @@ import ConnectEvmWallet from '../components/ConnectWallet';
 interface AppStoreContextType {
   receiverAddress: string;
   setReceiverAddress: (address: string) => void;
+  reset: () => void;
   evmOpen: boolean;
   openEvm: () => void;
   closeEvm: () => void;
@@ -39,6 +40,7 @@ interface AppStoreContextType {
 const AppStoreContext = createContext<AppStoreContextType>({
   receiverAddress: '',
   setReceiverAddress(address) {},
+  reset() {},
   // evm
   evmOpen: false,
   evmAddressList: [],
@@ -121,6 +123,13 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     [solAddressList],
   );
 
+  const reset = () => {
+    setReceiverAddress('');
+    setEvmAddressList([]);
+    setSolAddressList([]);
+    setEvmSignData([]);
+  };
+
   useEffect(() => {
     if (publicKey) {
       onSolConnected(publicKey.toBase58());
@@ -134,6 +143,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         setReceiverAddress,
         openEvm,
         closeEvm,
+        reset,
         evmOpen,
         evmAddressList,
         evmSignData,
