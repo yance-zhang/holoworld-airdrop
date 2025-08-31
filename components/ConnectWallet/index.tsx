@@ -12,7 +12,9 @@ const ConnectWallet: FC<{
   const { connectors, connect } = useConnect();
   const lastConnectedAddress = useRef<string | null>(null);
 
-  const filteredConnectors = connectors.filter((c) => c.name !== 'Injected');
+  const filteredConnectors = connectors.filter(
+    (c) => c.name !== 'Injected' && c.name !== 'Phantom',
+  );
 
   useEffect(() => {
     if (address && address !== lastConnectedAddress.current) {

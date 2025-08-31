@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@binance/w3w-wagmi-connector-v2": "^1.2.9",
     "@coral-xyz/anchor": "^0.31.1",
     "@solana/spl-token": "^0.4.13",
     "@solana/wallet-adapter-base": "^0.9.27",

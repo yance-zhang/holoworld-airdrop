@@ -23,16 +23,16 @@ const eligibleGroups = [
     icon: Eligible2,
   },
   {
-    title: 'Hololaunch $MIRAI + $LOUD pre-sale participants',
+    title: 'Hololaunch issuing Agrent tokens',
     description: 'Participants in SMIRAl or LOUD presales ',
     icon: Eligible3,
   },
-  {
-    title: 'Hologram app users',
-    description:
-      'Users of the Hologram Extension or Desktop App (hologram.xyz)',
-    icon: Eligible4,
-  },
+  // {
+  //   title: 'Hologram app users',
+  //   description:
+  //     'Users of the Hologram Extension or Desktop App (hologram.xyz)',
+  //   icon: Eligible4,
+  // },
   {
     title: '3D Pudgy Penguin claimers',
     description: 'Wallets that claimed a 3D Pudgy Penguin asset',

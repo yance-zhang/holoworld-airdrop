@@ -1,6 +1,7 @@
 import { AirdropProof, getSolanaAirdropProofApi } from '@/api';
 import ArrowDown from '@/assets/images/airdrop/arrow-down.svg';
 import BnbIcon from '@/assets/images/airdrop/bnb.svg';
+import EthIcon from '@/assets/images/airdrop/eth.svg';
 import SolIcon from '@/assets/images/airdrop/sol.svg';
 import UnconnectedIcon from '@/assets/images/airdrop/unconnected.svg';
 import WalletIcon from '@/assets/images/layout/wallet.svg';
@@ -21,7 +22,7 @@ import { InputAddress } from './inputAddress';
 
 const NetworkTabs = [
   { name: 'SOL', icon: SolIcon },
-  { name: 'BNB', icon: BnbIcon },
+  { name: 'EVM', icon: EthIcon },
 ];
 
 const AirdropItem: FC<{
@@ -30,7 +31,19 @@ const AirdropItem: FC<{
   defaultOpen: boolean;
 }> = ({ airdrop, network, defaultOpen }) => {
   const { disconnect } = useDisconnect();
+  const { disconnect: DisconnectSolana } = useWallet();
+  const { reset } = useAppStore();
   const [showDetail, setShowDetail] = useState<boolean>(defaultOpen);
+
+  const disconnectWallet = () => {
+    if (network === 'SOL') {
+      DisconnectSolana();
+    } else {
+      disconnect();
+    }
+
+    reset();
+  };
 
   return (
     <div
@@ -49,7 +62,7 @@ const AirdropItem: FC<{
             {shortenAddress(airdrop.address)}
           </span>
           <span
-            onClick={() => disconnect()}
+            onClick={disconnectWallet}
             className="inline-flex w-7 h-7 items-center justify-center rounded bg-black/5"
           >
             <UnconnectedIcon />
@@ -303,7 +316,7 @@ const VerifyAddress: FC = () => {
         </div>
 
         <button
-          className="btn mt-3 w-[360px] rounded-full border-none text-black/95 font-bold text-sm"
+          className="btn mt-3 w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
           onClick={handleClaim}
           disabled={
             (networkTab === 'BNB' && evmAddressList.length === 0) ||

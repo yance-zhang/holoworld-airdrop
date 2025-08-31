@@ -20,8 +20,10 @@ import React, {
   useState,
 } from 'react';
 import { Address } from 'viem';
-import { useChainId } from 'wagmi';
+import { useChainId, useDisconnect } from 'wagmi';
 import ConnectEvmWallet from '../components/ConnectWallet';
+import { useToast } from './ToastContext';
+import { shortenAddress } from '@/utils';
 
 interface AppStoreContextType {
   receiverAddress: string;
@@ -60,6 +62,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   // EVM
   const { generateSignature, signature } = useGenerateAirdropSignature();
   const chainId = useChainId();
+  const { addToast } = useToast();
+  const { disconnect: disconnectEvm } = useDisconnect();
   const [receiverAddress, setReceiverAddress] = useState<string>('');
   const [evmOpen, setEvmOpen] = useState<boolean>(false);
   const [evmAddressList, setEvmAddressList] = useState<AirdropProof[]>([]);
@@ -80,6 +84,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       const res = await getBscAirdropProofApi(address);
 
       if (res.error) {
+        addToast(`Account: ${shortenAddress(address)} is not eligible.`);
+        disconnectEvm();
         return;
       }
 
@@ -134,7 +140,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     if (publicKey) {
       onSolConnected(publicKey.toBase58());
     }
-  }, [onSolConnected, publicKey]);
+  }, [publicKey]);
 
   return (
     <AppStoreContext.Provider
