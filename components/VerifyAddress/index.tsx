@@ -49,16 +49,16 @@ const AirdropItem: FC<{
     <div
       className={clsx(
         'flex flex-col items-stretch p-[1px] rounded-xl transition-all bg-[#00000005]',
-        showDetail ? 'h-[118px]' : 'h-[42px]',
+        showDetail ? 'max-h-[300px]' : 'max-h-[42px]',
       )}
     >
-      <div className="flex items-center justify-between px-3 py-1.5 bg-white/90 rounded-xl">
+      <div className="flex items-center justify-between px-1.5 lg:px-3 py-1.5 bg-white/90 rounded-xl">
         <div className="flex items-center gap-1 font-semibold text-sm">
           <span className="flex items-center gap-0.5">
-            {network === 'SOL' ? <SolIcon /> : <BnbIcon />}
+            {network === 'SOL' ? <SolIcon /> : <EthIcon />}
             {network}:
           </span>
-          <span className="font-semibold text-sm text-black/90">
+          <span className="font-semibold text-xs lg:text-sm text-black/90">
             {shortenAddress(airdrop.address)}
           </span>
           <span
@@ -72,10 +72,10 @@ const AirdropItem: FC<{
           onClick={() => setShowDetail(!showDetail)}
           className="flex items-center justify-between w-40 px-2 rounded-md bg-[#DAFF8052] cursor-pointer"
         >
-          <span className="font-medium text-sm text-black/80">
+          <span className="font-medium text-xs lg:text-sm text-black/80">
             <b className="font-bold text-black">
               {formatBalanceNumber(
-                network === 'BNB'
+                network === 'EVM'
                   ? formatEther(BigInt(airdrop.amount))
                   : Number(airdrop.amount) / LAMPORTS_PER_SOL,
               )}{' '}
@@ -96,7 +96,7 @@ const AirdropItem: FC<{
             {Object.entries(airdrop.detail).map(([type, amount]) => (
               <span
                 key={type}
-                className="inline-block py-1.5 px-2 mr-2 rounded-md text-[#ACC220] font-semibold text-sm bg-[#DAFF8029] capitalize"
+                className="inline-block py-1.5 px-2 mr-2 mb-2 rounded-md text-[#ACC220] font-semibold text-xs lg:text-sm bg-[#DAFF8029] capitalize"
               >
                 {type.replaceAll('_', ' ')}{' '}
                 <span className="text-black/90">
@@ -178,7 +178,7 @@ const VerifyAddress: FC = () => {
     if (networkTab === 'SOL') {
       claimOnSolana();
     }
-    if (networkTab === 'BNB') {
+    if (networkTab === 'EVM') {
       if (address !== receiverAddress) {
         openEvm();
         return;
@@ -214,7 +214,7 @@ const VerifyAddress: FC = () => {
                   'linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.16) 100%)',
               }}
             ></div>
-            <span className="font-semibold text-base">
+            <span className="font-semibold text-sm lg:text-base">
               Select Claim Network
             </span>
             <div
@@ -227,7 +227,7 @@ const VerifyAddress: FC = () => {
           </div>
           <div
             role="tablist"
-            className="tabs tabs-box p-1 bg-black/5 rounded-full w-[360px]"
+            className="tabs tabs-box p-1 bg-black/5 rounded-full w-[307px] lg:w-[360px]"
           >
             {NetworkTabs.map((network) => (
               <a
@@ -254,14 +254,14 @@ const VerifyAddress: FC = () => {
         </div>
       }
       {/* receive address */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 w-full lg:w-[522px] px-6">
         <div className="flex flex-col gap-0.5">
           <span className="font-semibold text-sm">Receiving Address*</span>
           <span className="font-medium text-xs text-black/65">
             Assign a wallet to receive your $HOLO rewards
           </span>
         </div>
-        <label className="input input-sm flex items-center gap-2 h-10 bg-black/5 max-w-full w-[522px]">
+        <label className="input input-sm flex items-center gap-2 h-10 bg-black/5 max-w-full w-full lg:w-[522px]">
           <input
             type="text"
             className="h-full w-full font-medium text-xs"
@@ -279,9 +279,9 @@ const VerifyAddress: FC = () => {
         showButton
       />
       {/* address list */}
-      <div className="flex flex-col items-center w-full">
-        {networkTab === 'BNB' && (
-          <div className="flex items-center justify-between h-[83px] w-[698px] px-6 rounded-2xl border border-white bg-white/35">
+      <div className="flex flex-col items-center w-full px-3">
+        {networkTab === 'EVM' && (
+          <div className="flex items-center justify-between h-[83px] w-full lg:w-[698px] px-6 rounded-2xl border border-white bg-white/35">
             <span className="font-semibold text-sm">Total Eligible Token</span>
             <span className="flex items-end font-[PPMonumentExtended]">
               <span className="font-bold text-[30px]">
@@ -291,7 +291,7 @@ const VerifyAddress: FC = () => {
             </span>
           </div>
         )}
-        <div className="flex flex-col w-[650px] py-3 gap-4 px-16 bg-white/80 rounded-b-2xl">
+        <div className="flex flex-col w-full lg:w-[650px] py-3 gap-4 px-0 lg:px-16 bg-white/80 rounded-b-2xl">
           <div className="flex items-center justify-center gap-1 text-sm font-medium">
             <WalletIcon className="w-4 h-4 text-black/90" />
             Verified{' '}
@@ -319,7 +319,7 @@ const VerifyAddress: FC = () => {
           className="btn mt-3 w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
           onClick={handleClaim}
           disabled={
-            (networkTab === 'BNB' && evmAddressList.length === 0) ||
+            (networkTab === 'EVM' && evmAddressList.length === 0) ||
             (networkTab === 'SOL' && !publicKey)
           }
           style={{
@@ -327,7 +327,7 @@ const VerifyAddress: FC = () => {
               'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
           }}
         >
-          {networkTab === 'BNB' && receiverAddress !== address
+          {networkTab === 'EVM' && receiverAddress !== address
             ? 'Connect Receiver Account'
             : 'Claim Now'}
         </button>

@@ -51,7 +51,7 @@ const Home: FC = () => {
   const completeCheck = () => setState('claim');
 
   return (
-    <div className="relative">
+    <div className="relative max-w-[100vw] p-4">
       <div className="relative hidden lg:block pointer-events-none z-10">
         <Image
           src={Cube}
@@ -69,9 +69,9 @@ const Home: FC = () => {
           className="absolute top-[495px] -right-[204px] w-[286px]"
         />
       </div>
-      <div className="relative flex flex-col items-center py-7 gap-8 w-full max-w-[826px]">
+      <div className="relative flex flex-col items-center py-7 gap-8 w-full lg:max-w-[826px]">
         <div className="flex flex-col gap-6 items-center w-full">
-          <div className="flex flex-col items-center gap-6 w-full max-w-[588px]">
+          <div className="flex flex-col items-center gap-6 w-full max-w-[294px] lg:max-w-[588px]">
             <div className="flex items-center justify-center gap-2 bg-[#FFFFFF5C] border-2 rounded-full w-full h-9 border-white">
               <span
                 className="w-2 h-2 rounded-full"
@@ -85,10 +85,12 @@ const Home: FC = () => {
               </span>
             </div>
             <div className="font-[PPMonumentExtended] font-medium w-full leading-tight">
-              <span className=" text-[64px] tracking-wide">Unlock Your </span>
-              <span className=" text-[48px] text-nowrap">
+              <span className="text-[32px] lg:text-[64px] tracking-wide">
+                Unlock Your
+              </span>
+              <span className="text-[24px] lg:text-[48px] text-nowrap">
                 <div
-                  className="inline-block w-[260px] h-16 rounded-full text-center text-white font-bold mr-1.5"
+                  className="inline-block w-[128px] lg:w-[260px] h-[30px] lg:h-16 rounded-full text-center text-white font-bold mr-1.5"
                   style={{
                     background:
                       'linear-gradient(150.13deg, #00ECDE 11.96%, #5BFA82 63.31%, #C1F74D 103.46%)',
@@ -109,11 +111,11 @@ const Home: FC = () => {
 
         {/* eligible */}
         <div className="flex flex-col gap-4 w-full">
-          <div className="flex flex-col items-center gap-2">
-            <span className="font-bold text-black/95 text-base font-[PPMonumentExtended]">{`Who's Eligible For The Airdrop?`}</span>
-            <span className="font-medium text-sm text-black/80">{`Connect your wallet to check if you're in one of these eligible groups:`}</span>
+          <div className="flex flex-col items-start lg:items-center gap-2">
+            <span className="font-bold text-black/95 text-sm lg:text-base font-[PPMonumentExtended]">{`Who's Eligible For The Airdrop?`}</span>
+            <span className="font-medium text-xs lg:text-sm text-black/80">{`Connect your wallet to check if you're in one of these eligible groups:`}</span>
           </div>
-          <div className="grid grid-cols-3 gap-4 w-full">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 w-full">
             {eligibleGroups.map((group) => (
               <div
                 key={group.title}

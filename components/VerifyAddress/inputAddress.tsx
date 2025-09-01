@@ -23,19 +23,18 @@ export const InputAddress: FC<{
       addToast('Please enter receiver address.', 'warning');
       return;
     }
-    if (network === 'BNB') {
+    if (network === 'EVM') {
       openEvm();
-      // onAdd(value, 'BNB');
+      console.log('evm');
     }
     if (network === 'SOL') {
       openSol();
-      // onAdd(value, 'SOL');
     }
     setValue('');
   };
 
   return (
-    <div className="flex flex-col gap-2 w-[522px]">
+    <div className="flex flex-col gap-2 w-full lg:w-[522px] px-6">
       <div className="flex flex-col gap-0.5">
         <span className="font-semibold text-sm">
           Verify Wallet Address To Claim From*
@@ -45,7 +44,7 @@ export const InputAddress: FC<{
         </span>
       </div>
       {network === 'SOL' && publicKey ? null : (
-        <label className="input input-sm flex items-center justify-between gap-2 h-10 bg-black/5 max-w-full w-[522px]">
+        <label className="input input-sm flex items-center justify-between gap-2 h-10 bg-black/5 max-w-full w-full lg:w-[522px]">
           <span className="text-xs font-medium">
             {network === 'SOL' ? publicKey?.toBase58() : address}
           </span>
@@ -71,12 +70,12 @@ export const InputAddress: FC<{
         <button
           className={clsx(
             'btn w-full rounded-full mt-5 text-sm text-black/95 font-bold  bg-black/30',
-            value ? '' : 'opacity-35',
+            !value ? '' : 'opacity-35',
           )}
           onClick={handleAdd}
           style={{
             background:
-              value.length > 0
+              value.length === 0
                 ? 'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)'
                 : '',
           }}
