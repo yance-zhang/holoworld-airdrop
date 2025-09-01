@@ -316,7 +316,7 @@ const VerifyAddress: FC = () => {
         </div>
 
         <button
-          className="btn mt-3 w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
+          className="btn mt-3 w-[280px] lg:w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
           onClick={handleClaim}
           disabled={
             (networkTab === 'EVM' && evmAddressList.length === 0) ||

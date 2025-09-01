@@ -25,7 +25,6 @@ export const InputAddress: FC<{
     }
     if (network === 'EVM') {
       openEvm();
-      console.log('evm');
     }
     if (network === 'SOL') {
       openSol();

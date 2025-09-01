@@ -98,7 +98,7 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
   };
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full">
+    <div className="flex flex-col items-center gap-6 w-full p-4">
       {/* add address */}
       <div className="flex flex-col gap-2">
         <span className="font-semibold text-sm">Verify Wallet Address*</span>
@@ -129,7 +129,7 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
 
       {/* address list */}
       <div className="flex flex-col items-center w-full">
-        <div className="flex flex-col w-[650px] py-3 gap-4 px-16 bg-white/80 rounded-b-2xl">
+        <div className="flex flex-col w-full lg:w-[650px] py-3 gap-4 px-16 bg-white/80 rounded-b-2xl">
           <div className="flex items-center justify-center gap-1 text-sm font-medium">
             <WalletIcon className="w-4 h-4 text-black/90" />
             Check Up to{' '}
@@ -154,14 +154,14 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
         {checked ? (
           <button
             onClick={completeCheck}
-            className="btn mt-3 w-full max-w-[650px] btn-sm h-10 max-h-10 bg-[#DAFF8029] border-none text-black/95 font-semibold text-xs"
+            className="btn mt-3 w-full lg:max-w-[650px] btn-sm h-10 max-h-10 bg-[#DAFF8029] border-none text-black/95 font-semibold text-xs"
           >
             <ClockIcon />
             Claim On 01/10/2025 00:00 UTC
           </button>
         ) : (
           <button
-            className="btn mt-3 w-[360px] rounded-full border-none text-black/95 font-bold text-sm"
+            className="btn mt-3 w-[240px] lg:w-[360px] rounded-full border-none text-black/95 font-bold text-sm"
             onClick={handleCheck}
             style={{
               background:
