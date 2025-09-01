@@ -78,7 +78,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       const index = evmAddressList.findIndex(
         (addr) => addr.address === address,
       );
-      console.log(receiverAddress, index);
       if (index > -1 || !receiverAddress) {
         return;
       }

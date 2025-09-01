@@ -1,14 +1,26 @@
+import {
+  AirdropProof,
+  getBscAirdropProofApi,
+  getSolanaAirdropProofApi,
+} from '@/api';
 import AddIcon from '@/assets/images/airdrop/add.svg';
 import ArrowDown from '@/assets/images/airdrop/arrow-down.svg';
 import ClockIcon from '@/assets/images/airdrop/clock.svg';
 import UnconnectedIcon from '@/assets/images/airdrop/unconnected.svg';
 import WalletIcon from '@/assets/images/layout/wallet.svg';
-import { shortenAddress } from '@/utils';
+import { formatBalanceNumber, shortenAddress } from '@/utils';
 import clsx from 'clsx';
 import { FC, useState } from 'react';
+import { isAddress } from 'viem';
+
+type addressInfo = {
+  address: string;
+  network: string;
+  proof?: AirdropProof;
+};
 
 const AddressItem: FC<{
-  address: string;
+  address: addressInfo;
   expandable: boolean;
   disconnectAddress: (address: string) => void;
   defaultOpen: boolean;
@@ -17,39 +29,46 @@ const AddressItem: FC<{
 
   return (
     <div
-      key={address}
       className={clsx(
         'flex flex-col items-stretch p-[1px] rounded-xl transition-all bg-[#00000005]',
-        expandable && showDetail ? 'h-[118px]' : 'h-[42px]',
+        expandable && showDetail ? 'max-h-[300px]' : 'max-h-[42px]',
       )}
     >
       <div className="flex items-center justify-between px-3 py-1.5 bg-white/90 rounded-xl">
         <div className="flex items-center gap-1 font-semibold text-sm">
           <span className="font-semibold text-sm text-black/90">
-            {shortenAddress(address)}
+            {shortenAddress(address.address)}
           </span>
 
           {expandable && (
-            <span className="inline-flex w-7 h-7 items-center justify-center rounded bg-black/5">
+            <span className="inline-flex w-7 h-7 items-center cursor-pointer justify-center rounded bg-black/5">
               <UnconnectedIcon />
             </span>
           )}
         </div>
         {expandable ? (
-          <div
-            onClick={() => setShowDetail(!showDetail)}
-            className="flex items-center justify-between gap-2 h-7 px-2 rounded-md bg-[#6FFFCB29] cursor-pointer"
-          >
-            <span className="font-semibold text-sm text-[#15CE8C]">
-              Eligible
-            </span>
-            <ArrowDown
-              className={clsx('transition-all', showDetail && 'rotate-180')}
-            />
-          </div>
+          address.proof ? (
+            <div
+              onClick={() => setShowDetail(!showDetail)}
+              className="flex items-center justify-between gap-2 h-7 px-2 rounded-md bg-[#6FFFCB29] cursor-pointer"
+            >
+              <span className="font-semibold text-sm text-[#15CE8C]">
+                Eligible
+              </span>
+              <ArrowDown
+                className={clsx('transition-all', showDetail && 'rotate-180')}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2 h-7 px-2 rounded-md bg-[#FF366629]">
+              <span className="font-semibold text-sm text-[#FF3666]">
+                Unqualified
+              </span>
+            </div>
+          )
         ) : (
           <span
-            onClick={() => disconnectAddress(address)}
+            onClick={() => disconnectAddress(address.address)}
             className="inline-flex gap-1 px-2 h-7 items-center justify-center rounded bg-black/5 cursor-pointer"
           >
             <UnconnectedIcon />
@@ -57,18 +76,23 @@ const AddressItem: FC<{
           </span>
         )}
       </div>
-      {expandable && showDetail && (
+      {expandable && showDetail && address.proof && (
         <div className="flex flex-col p-2 gap-2">
           <span className="font-medium text-sm text-black/80">
             Eligible Types:
           </span>
           <div className="">
-            <span className="inline-flex items-center h-7 px-2 mr-2 rounded-md font-semibold text-sm text-[#15CE8C] bg-[#6FFFCB29]">
-              3D Pudgy Penguin Claimer
-            </span>
-            <span className="inline-flex items-center h-7 px-2 mr-2 rounded-md font-semibold text-sm text-[#15CE8C] bg-[#6FFFCB29]">
-              Staked AVA
-            </span>
+            {Object.entries(address.proof.detail).map(([type, amount]) => (
+              <span
+                key={type}
+                className="inline-block py-1.5 px-2 mr-2 mb-2 rounded-md text-[#ACC220] font-semibold text-xs lg:text-sm bg-[#DAFF8029] capitalize"
+              >
+                {type.replaceAll('_', ' ')}{' '}
+                <span className="text-black/90">
+                  {formatBalanceNumber(amount)} $HOLO
+                </span>
+              </span>
+            ))}
           </div>
         </div>
       )}
@@ -80,21 +104,53 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
   completeCheck,
 }) => {
   const [inputValue, setInputValue] = useState<string>('');
-  const [addressList, setAddressList] = useState<string[]>([]);
+  const [addressList, setAddressList] = useState<addressInfo[]>([]);
   const [checked, setChecked] = useState<boolean>(false);
 
   const handleAdd = () => {
     if (!inputValue) return;
 
-    setAddressList([...addressList, inputValue]);
+    setAddressList([
+      ...addressList,
+      {
+        address: inputValue,
+        network: isAddress(inputValue) ? 'EVM' : 'SOL',
+      },
+    ]);
+
+    setInputValue('');
   };
 
-  const handleCheck = () => {
+  const handleCheck = async () => {
+    let list = [];
+
+    for (let index = 0; index < addressList.length; index++) {
+      const addr = addressList[index];
+
+      try {
+        const request =
+          addr.network === 'EVM'
+            ? getBscAirdropProofApi
+            : getSolanaAirdropProofApi;
+        const res = await request(addr.address);
+
+        console.log(res);
+
+        if (res.error) {
+          list.push(addr);
+        } else {
+          list.push({ ...addr, proof: res });
+        }
+      } catch (error) {
+        list.push(addr);
+      }
+    }
+    setAddressList(list);
     setChecked(true);
   };
 
   const disconnectAddress = (address: string) => {
-    setAddressList(addressList.filter((addr) => addr !== address));
+    setAddressList(addressList.filter((addr) => addr.address !== address));
   };
 
   return (
@@ -102,7 +158,7 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
       {/* add address */}
       <div className="flex flex-col gap-2">
         <span className="font-semibold text-sm">Verify Wallet Address*</span>
-        <label className="input input-sm flex items-center gap-2 h-10 bg-black/5 max-w-full w-[522px]">
+        <label className="input input-sm flex items-center gap-2 h-10 bg-black/5 max-w-full w-full lg:w-[522px]">
           <input
             type="text"
             className="h-full w-full font-medium text-xs"
@@ -129,7 +185,7 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
 
       {/* address list */}
       <div className="flex flex-col items-center w-full">
-        <div className="flex flex-col w-full lg:w-[650px] py-3 gap-4 px-16 bg-white/80 rounded-b-2xl">
+        <div className="flex flex-col w-full lg:w-[650px] py-3 gap-4 px-3 lg:px-16 bg-white/80 rounded-b-2xl">
           <div className="flex items-center justify-center gap-1 text-sm font-medium">
             <WalletIcon className="w-4 h-4 text-black/90" />
             Check Up to{' '}
@@ -141,7 +197,7 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
           <div className="flex flex-col gap-3">
             {addressList.map((address, index) => (
               <AddressItem
-                key={address}
+                key={address.address}
                 expandable={checked}
                 address={address}
                 disconnectAddress={disconnectAddress}

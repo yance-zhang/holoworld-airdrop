@@ -7,6 +7,7 @@ import Eligible3 from '@/assets/images/layout/eligible-3.svg';
 import Eligible4 from '@/assets/images/layout/eligible-4.svg';
 import Eligible5 from '@/assets/images/layout/eligible-5.svg';
 import Eligible6 from '@/assets/images/layout/eligible-6.svg';
+import EligibleCheck from '@/components/EligibleCheck';
 import VerifyAddress from '@/components/VerifyAddress';
 import Image from 'next/image';
 import { FC, useState } from 'react';
@@ -23,8 +24,9 @@ const eligibleGroups = [
     icon: Eligible2,
   },
   {
-    title: 'Hololaunch issuing Agrent tokens',
-    description: 'Participants in SMIRAl or LOUD presales ',
+    title: 'Launch on Agent Market',
+    description:
+      'If you have previously issued Agent Tokens on HoloLaunch, you are eligible.',
     icon: Eligible3,
   },
   // {
@@ -103,9 +105,11 @@ const Home: FC = () => {
             </div>
           </div>
           <div className="w-full py-8 bg-white/35 border-2 border-white rounded-3xl backdrop-blur-3xl">
-            {/* {state === 'check' && <EligibleCheck completeCheck={completeCheck} />} */}
-            {/* {state === 'claim' && <VerifyAddress />} */}
-            <VerifyAddress />
+            {state === 'check' && (
+              <EligibleCheck completeCheck={completeCheck} />
+            )}
+            {state === 'claim' && <VerifyAddress />}
+            {/* <VerifyAddress /> */}
           </div>
         </div>
 
