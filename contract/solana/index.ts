@@ -86,7 +86,7 @@ export const useAirdropClaimOnSolana = () => {
   const { connection } = useConnection();
 
   async function sha256(input: Uint8Array): Promise<Uint8Array> {
-    const hash = await crypto.subtle.digest('SHA-256', input);
+    const hash = await crypto.subtle.digest('SHA-256', input as any);
     return new Uint8Array(hash);
   }
 
@@ -125,7 +125,7 @@ export const useAirdropClaimOnSolana = () => {
     const dataHash = await sha256(data);
     const signature = await signMessage(dataHash);
 
-    return { data: Uint8Array.from(dataHash), signature, proof, expireAt };
+    return { data: dataHash, signature, proof, expireAt };
   }
 
   const claimAirdrop = async ({
@@ -396,7 +396,7 @@ export const useAirdropClaimOnSolana = () => {
         new BN(proofInfo.amount), // amount
         signedData.proof, // proof hash
         new BN(proofInfo.index), // leaves index
-        signedData.expireAt, // expireAt
+        new BN(signedData.expireAt), // expireAt
         signedData.signature,
         new BN(verifyInstIdx), // verify_ix_index
       )
