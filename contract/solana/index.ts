@@ -28,11 +28,12 @@ export const airdropTokenMint = new PublicKey(
 );
 
 export const lutAddress = new PublicKey(
-  '4K7a1wXeosvGWB3hDES3VAA4WfjBg45V7wzQbTUZ32im',
+  '45sKfB5HAZcSZKWptrarBDT2YBGRSAURRCACHzMwegsj',
 );
 
 export const MERKLE_ROOT_SEEDS = Buffer.from('merkle_root');
 export const CLAIM_RECORD_SEEDS = Buffer.from('claim_record');
+const solanaPhase = new BN(5);
 
 // Type definitions based on IDL
 interface ClaimRecord {
@@ -142,7 +143,7 @@ export const useAirdropClaimOnSolana = () => {
       connection,
     });
 
-    const phase = new BN(4);
+    const phase = solanaPhase;
     const receiver = new PublicKey(receiverAddress);
 
     const [merkleRoot, merkleRootBump] = PublicKey.findProgramAddressSync(
@@ -185,7 +186,7 @@ export const useAirdropClaimOnSolana = () => {
     );
     console.log('userTokenVault: ', userTokenVault.toBase58());
 
-    console.log('正在从链上获取地址查找表账户...');
+    console.log('正在从链上获取地址查找表账户: ', lutAddress.toBase58());
     const lookupTableAccountResponse =
       await connection.getAddressLookupTable(lutAddress);
 
@@ -305,7 +306,7 @@ export const useAirdropClaimOnSolana = () => {
     if (!publicKey) {
       return;
     }
-    const phase = new BN(4);
+    const phase = solanaPhase;
 
     const program = new Program(IDL as Idl, {
       connection,
