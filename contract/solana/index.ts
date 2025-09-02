@@ -1,4 +1,3 @@
-// hooks/useAirdrop.ts
 import { AirdropProof } from '@/api';
 import { BN, Idl, Program, web3 } from '@coral-xyz/anchor';
 import {
@@ -18,7 +17,6 @@ import {
   TransactionMessage,
   VersionedTransaction,
 } from '@solana/web3.js';
-import { webcrypto } from 'crypto';
 import IDL from './holo_token_airdrop_solana.json';
 
 export const PROGRAMID_DEVNET = new PublicKey(
@@ -75,36 +73,59 @@ export function newTransactionWithComputeUnitPriceAndLimit(): Transaction {
   );
 }
 
+export type SolSignedData = {
+  data: Uint8Array;
+  signature: Uint8Array;
+  proof: Buffer;
+  expireAt: number;
+};
+
 export const useAirdropClaimOnSolana = () => {
   const { publicKey, sendTransaction, signMessage, signTransaction } =
     useWallet();
   const { connection } = useConnection();
 
-  async function sha256(data: Uint8Array): Promise<Uint8Array> {
-    const hash = await webcrypto.subtle.digest('SHA-256', data);
+  async function sha256(input: Uint8Array): Promise<Uint8Array> {
+    const hash = await crypto.subtle.digest('SHA-256', input);
     return new Uint8Array(hash);
   }
 
   async function signClaimReward(
     proof: Buffer,
     receiver: PublicKey,
-    expireAt: bigint,
-  ): Promise<{ data: Uint8Array; signature: Uint8Array }> {
+    expireAt: number,
+  ): Promise<SolSignedData> {
     if (!signMessage) {
-      throw new Error('Sign message error');
+      throw new Error('Sign message function is not available');
     }
-    let data = Buffer.alloc(8);
-    data.writeBigInt64LE(expireAt, 0);
+    if (!receiver || !proof) {
+      throw new Error('No receiver or proof');
+    }
+
+    // let data = Buffer.alloc(8);
+    // data.writeBigInt64LE(BigInt(expireAt), 0);
+
+    // data = Buffer.concat([await sha256(proof), receiver.toBytes(), data]);
+
+    // const dataHash = await sha256(data);
+
+    const expireAtBytes = new Uint8Array(8);
+    const dataView = new DataView(expireAtBytes.buffer);
+    dataView.setBigInt64(0, BigInt(expireAt), true);
 
     const proofHash = await sha256(proof);
 
-    data = Buffer.concat([proofHash, receiver.toBytes(), data]);
+    const receiverBytes = receiver.toBytes();
+    const data = new Uint8Array([
+      ...proofHash,
+      ...receiverBytes,
+      ...expireAtBytes,
+    ]);
 
     const dataHash = await sha256(data);
     const signature = await signMessage(dataHash);
 
-    //   console.log("Signature:", Buffer.from(signature).toString("base64"));
-    return { data: Uint8Array.from(dataHash), signature };
+    return { data: Uint8Array.from(dataHash), signature, proof, expireAt };
   }
 
   const claimAirdrop = async ({
@@ -276,14 +297,15 @@ export const useAirdropClaimOnSolana = () => {
 
   const claimAirdropWithReceiver = async ({
     proofInfo,
+    signedData,
   }: {
     proofInfo: AirdropProof;
+    signedData: SolSignedData;
   }) => {
     if (!publicKey) {
       return;
     }
     const phase = new BN(4);
-    const expireAt = new BN(Math.floor(Date.now() / 1000) + 3600);
 
     const program = new Program(IDL as Idl, {
       connection,
@@ -302,6 +324,17 @@ export const useAirdropClaimOnSolana = () => {
       merkleRoot.toBase58(),
       merkleRootBump,
     );
+
+    console.log('正在从链上获取地址查找表账户...');
+    const lookupTableAccountResponse =
+      await connection.getAddressLookupTable(lutAddress);
+
+    const lookupTableAccount: AddressLookupTableAccount | null =
+      lookupTableAccountResponse.value;
+
+    if (!lookupTableAccount) {
+      throw new Error(`无法在链上找到地址查找表: ${lutAddress.toBase58()}`);
+    }
 
     const merkleRootInfo = await (program.account as any).merkleRoot.fetch(
       merkleRoot,
@@ -348,19 +381,10 @@ export const useAirdropClaimOnSolana = () => {
       claimRecordBump,
     );
 
-    const proof = proofInfo.proof.map((x) => Buffer.from(x, 'hex'));
-    const proofBuf = Buffer.concat(proof);
-
-    let { data, signature } = await signClaimReward(
-      proofBuf,
-      publicKey,
-      BigInt(expireAt.toString()),
-    );
-
     const verifySignInst = web3.Ed25519Program.createInstructionWithPublicKey({
       publicKey: publicKey.toBytes(),
-      message: data,
-      signature: signature,
+      message: signedData.data,
+      signature: signedData.signature,
     });
 
     tx.add(verifySignInst);
@@ -370,10 +394,10 @@ export const useAirdropClaimOnSolana = () => {
         phase,
         publicKey,
         new BN(proofInfo.amount), // amount
-        proofBuf, // proof hash
+        signedData.proof, // proof hash
         new BN(proofInfo.index), // leaves index
-        expireAt, // expireAt
-        signature,
+        signedData.expireAt, // expireAt
+        signedData.signature,
         new BN(verifyInstIdx), // verify_ix_index
       )
       .accounts({
@@ -391,17 +415,66 @@ export const useAirdropClaimOnSolana = () => {
       .instruction();
     tx.add(inst);
 
-    verifyInstIdx *= 2;
+    const { blockhash } = await connection.getLatestBlockhash();
+
+    console.log(`blockhash: ${blockhash}`);
+
+    const messageV0 = new TransactionMessage({
+      payerKey: publicKey,
+      recentBlockhash: blockhash,
+      instructions: tx.instructions,
+    }).compileToV0Message([lookupTableAccount]);
+
+    const versionedTx = new VersionedTransaction(messageV0);
+    const serializedTx = versionedTx.serialize();
+    const txSize = serializedTx.length;
+
+    console.log(`✅ 这笔版本化交易的大小是: ${txSize} 字节`);
+
+    let txSignature = '';
 
     try {
-      await sendTransaction(tx, connection);
-    } catch (error) {
+      // Sign transaction with wallet
+      if (!signTransaction) {
+        throw new Error('Wallet does not support transaction signing');
+      }
+      const signedTx = await signTransaction(versionedTx);
+
+      // Send transaction
+      txSignature = await connection.sendRawTransaction(signedTx.serialize());
+      console.log(`Transaction sent: ${txSignature}`);
+
+      // Confirm transaction
+      const confirmation = await connection.confirmTransaction(
+        txSignature,
+        'confirmed',
+      );
+      console.log('Transaction confirmed:', confirmation);
+
+      return txSignature;
+    } catch (error: any) {
       console.error(error);
+      // Handle SendTransactionError and fetch logs
+      if (error.name === 'SendTransactionError') {
+        const txError = error as TransactionError;
+        const logs = await connection.getTransaction(txSignature, {
+          commitment: 'confirmed',
+          maxSupportedTransactionVersion: 0,
+        });
+        console.error(
+          'Detailed transaction logs:',
+          logs?.meta?.logMessages || [],
+        );
+        throw new Error(
+          `SendTransactionError: ${error.message}, Logs: ${JSON.stringify(logs?.meta?.logMessages || [])}`,
+        );
+      }
     }
   };
 
   return {
     claimAirdrop,
     claimAirdropWithReceiver,
+    signClaimReward,
   };
 };

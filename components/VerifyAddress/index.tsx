@@ -119,11 +119,13 @@ const VerifyAddress: FC = () => {
     receiverAddress,
     setReceiverAddress,
     openEvm,
+    openSol,
     evmSignData,
     reset,
+    solSignedData,
   } = useAppStore();
   const { multiClaim } = useAirdropClaimOnBSC();
-  const { claimAirdrop } = useAirdropClaimOnSolana();
+  const { claimAirdrop, claimAirdropWithReceiver } = useAirdropClaimOnSolana();
   const { address } = useAccount();
   const { publicKey, disconnect: disconnectSolana } = useWallet();
   const disconnectEvm = useDisconnect();
@@ -157,16 +159,16 @@ const VerifyAddress: FC = () => {
   };
 
   const claimOnSolana = async () => {
-    if (!publicKey) {
+    if (!publicKey || !solSignedData) {
       return;
     }
     try {
       const proofInfo = await getSolanaAirdropProofApi(publicKey.toBase58());
       console.log(proofInfo);
 
-      const res = await claimAirdrop({
-        receiverAddress,
+      const res = await claimAirdropWithReceiver({
         proofInfo,
+        signedData: solSignedData,
       });
       console.log(res);
     } catch (error) {
@@ -176,6 +178,10 @@ const VerifyAddress: FC = () => {
 
   const handleClaim = () => {
     if (networkTab === 'SOL') {
+      if (publicKey?.toBase58() !== receiverAddress) {
+        openSol();
+        return;
+      }
       claimOnSolana();
     }
     if (networkTab === 'EVM') {
@@ -327,7 +333,8 @@ const VerifyAddress: FC = () => {
               'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
           }}
         >
-          {networkTab === 'EVM' && receiverAddress !== address
+          {(networkTab === 'EVM' && receiverAddress !== address) ||
+          (networkTab === 'SOL' && receiverAddress !== publicKey?.toBase58())
             ? 'Connect Receiver Account'
             : 'Claim Now'}
         </button>

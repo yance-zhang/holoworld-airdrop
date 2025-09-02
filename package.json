@@ -11,6 +11,7 @@
   "dependencies": {
     "@binance/w3w-wagmi-connector-v2": "^1.2.9",
     "@coral-xyz/anchor": "^0.31.1",
+    "@noble/hashes": "^2.0.0",
     "@solana/spl-token": "^0.4.13",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-react": "^0.15.39",

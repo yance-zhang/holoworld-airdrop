@@ -24,6 +24,9 @@ import { useChainId, useDisconnect } from 'wagmi';
 import ConnectEvmWallet from '../components/ConnectWallet';
 import { useToast } from './ToastContext';
 import { shortenAddress } from '@/utils';
+import { SolSignedData, useAirdropClaimOnSolana } from '@/contract/solana';
+import { BN } from '@coral-xyz/anchor';
+import { PublicKey } from '@solana/web3.js';
 
 interface AppStoreContextType {
   receiverAddress: string;
@@ -37,6 +40,7 @@ interface AppStoreContextType {
   openSol: () => void;
   closeSol: () => void;
   solAddressList: AirdropProof[];
+  solSignedData?: SolSignedData;
 }
 
 const AppStoreContext = createContext<AppStoreContextType>({
@@ -118,7 +122,9 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   // SOL
   const { setVisible } = useWalletModal();
   const { publicKey } = useWallet();
+  const { signClaimReward } = useAirdropClaimOnSolana();
   const [solAddressList, setSolAddressList] = useState<AirdropProof[]>([]);
+  const [solSignedData, setSolSignedData] = useState<SolSignedData>();
 
   const openSol = () => {
     setVisible(true);
@@ -128,13 +134,35 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const onSolConnected = useCallback(
     async (address: string) => {
-      if (solAddressList.find((addr) => addr.address === address)) {
+      if (
+        solAddressList.find((addr) => addr.address === address) ||
+        solAddressList.length === 1
+      ) {
         return;
       }
-      const res = await getSolanaAirdropProofApi(address);
-      setSolAddressList([...solAddressList, res]);
+      try {
+        const res = await getSolanaAirdropProofApi(address);
+        setSolAddressList([...solAddressList, res]);
+
+        if (!receiverAddress) {
+          return;
+        }
+        const proof = res.proof.map((x) => Buffer.from(x, 'hex'));
+        const proofBuf = Buffer.concat(proof);
+        const expireAt = Math.floor(Date.now() / 1000) + 3600;
+
+        const signRes = await signClaimReward(
+          proofBuf,
+          new PublicKey(receiverAddress),
+          expireAt,
+        );
+
+        setSolSignedData(signRes);
+      } catch (error) {
+        console.log(error);
+      }
     },
-    [solAddressList],
+    [publicKey, solAddressList, receiverAddress],
   );
 
   const reset = () => {
@@ -164,6 +192,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         openSol,
         closeSol,
         solAddressList,
+        solSignedData,
       }}
     >
       {children}
