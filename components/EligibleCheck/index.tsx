@@ -217,8 +217,9 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
           </button>
         ) : (
           <button
-            className="btn mt-3 w-[240px] lg:w-[360px] rounded-full border-none text-black/95 font-bold text-sm"
+            className="btn mt-3 w-[240px] lg:w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
             onClick={handleCheck}
+            disabled={addressList.length === 0}
             style={{
               background:
                 'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
