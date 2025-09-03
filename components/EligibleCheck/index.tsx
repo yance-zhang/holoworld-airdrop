@@ -115,8 +115,12 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
   const disconnectEvm = useDisconnect();
   const [networkTab, setNetworkTab] = useState(NetworkTabs[0].name);
 
+  const limitSolAddress = networkTab == 'SOL' && addressList.length == 1;
+
+  const limitEvmAddress = networkTab == 'EVM' && addressList.length == 10;
+
   const handleAdd = () => {
-    if (!inputValue) return;
+    if (!inputValue || limitEvmAddress || limitSolAddress) return;
 
     setAddressList([
       ...addressList,
@@ -221,12 +225,15 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
           <button
             className={clsx(
               'btn btn-xs h-7 w-[140px] rounded-md border-none text-xs text-black/95 font-bold !bg-transparent',
-              inputValue ? '' : 'opacity-35',
+              inputValue && !limitSolAddress && !limitEvmAddress
+                ? ''
+                : 'opacity-35',
             )}
             style={{
-              background: inputValue
-                ? 'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)'
-                : '',
+              background:
+                inputValue && !limitSolAddress && !limitEvmAddress
+                  ? 'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)'
+                  : '',
             }}
             onClick={handleAdd}
           >
