@@ -9,13 +9,12 @@ import ClockIcon from '@/assets/images/airdrop/clock.svg';
 import UnconnectedIcon from '@/assets/images/airdrop/unconnected.svg';
 import WalletIcon from '@/assets/images/layout/wallet.svg';
 import { formatBalanceNumber, shortenAddress } from '@/utils';
-import clsx from 'clsx';
-import { FC, useState } from 'react';
-import { isAddress } from 'viem';
-import { NetworkTabs } from '../VerifyAddress';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { reset } from 'viem/actions';
+import clsx from 'clsx';
+import { FC, useEffect, useState } from 'react';
+import { isAddress } from 'viem';
 import { useAccount, useDisconnect } from 'wagmi';
+import { NetworkTabs } from '../VerifyAddress';
 
 type addressInfo = {
   address: string;
@@ -45,7 +44,10 @@ const AddressItem: FC<{
           </span>
 
           {expandable && (
-            <span className="inline-flex w-7 h-7 items-center cursor-pointer justify-center rounded bg-black/5">
+            <span
+              onClick={() => disconnectAddress(address.address)}
+              className="inline-flex w-7 h-7 items-center cursor-pointer justify-center rounded bg-black/5"
+            >
               <UnconnectedIcon />
             </span>
           )}

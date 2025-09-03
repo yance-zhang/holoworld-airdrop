@@ -137,6 +137,9 @@ const VerifyAddress: FC = () => {
   const [claimOpen, setClaimOpen] = useState<boolean>(false);
   const connectType = useRef<'receiver' | 'sender' | 'none'>('none');
 
+  const limitEvmAddress = evmAddressList.length === 10;
+  const limitSolAddress = solAddressList.length === 1;
+
   const handleAddAddress = (addr: string, network: string) => {
     if (!addr) return;
 
@@ -211,6 +214,9 @@ const VerifyAddress: FC = () => {
   };
 
   const connectSenderAddress = () => {
+    if (limitEvmAddress || limitSolAddress) {
+      return;
+    }
     connectType.current = 'sender';
 
     openConnect();
