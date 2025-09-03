@@ -75,6 +75,7 @@ export function newTransactionWithComputeUnitPriceAndLimit(): Transaction {
 }
 
 export type SolSignedData = {
+  signer: PublicKey;
   data: Uint8Array;
   signature: Uint8Array;
   proof: Buffer;
@@ -99,8 +100,8 @@ export const useAirdropClaimOnSolana = () => {
     if (!signMessage) {
       throw new Error('Sign message function is not available');
     }
-    if (!receiver || !proof) {
-      throw new Error('No receiver or proof');
+    if (!receiver || !proof || !publicKey) {
+      throw new Error('No receiver or proof or signer publicKey');
     }
 
     // let data = Buffer.alloc(8);
@@ -124,9 +125,17 @@ export const useAirdropClaimOnSolana = () => {
     ]);
 
     const dataHash = await sha256(data);
-    const signature = await signMessage(dataHash);
 
-    return { data: dataHash, signature, proof, expireAt };
+    const dataHashStr = Array.from(dataHash)
+      .map(byte => byte.toString(16).padStart(2, '0'))
+      .join('');
+    console.log("dataHashStr: ", dataHashStr);
+    const messageToSign = new TextEncoder().encode(dataHashStr);
+
+    console.log("messageToSign: ", messageToSign);
+    const signature = await signMessage(messageToSign);
+
+    return { data: messageToSign, signature, proof, expireAt, signer: publicKey };
   }
 
   const claimAirdrop = async ({
@@ -371,7 +380,7 @@ export const useAirdropClaimOnSolana = () => {
       [
         CLAIM_RECORD_SEEDS,
         phase.toArrayLike(Buffer, 'le', 1),
-        publicKey.toBuffer(),
+        signedData.signer.toBuffer(),
         airdropTokenMint.toBuffer(),
       ],
       program.programId,
@@ -383,17 +392,20 @@ export const useAirdropClaimOnSolana = () => {
     );
 
     const verifySignInst = web3.Ed25519Program.createInstructionWithPublicKey({
-      publicKey: publicKey.toBytes(),
+      publicKey: signedData.signer.toBytes(),
       message: signedData.data,
       signature: signedData.signature,
     });
 
     tx.add(verifySignInst);
 
+    // console.log("proofInfo: ", proofInfo);
+    // console.log("signedData: ", signedData);
+
     const inst = await program.methods
       .claimAirdropWithReceiver(
         phase,
-        publicKey,
+        signedData.signer,
         new BN(proofInfo.amount), // amount
         signedData.proof, // proof hash
         new BN(proofInfo.index), // leaves index

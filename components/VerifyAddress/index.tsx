@@ -163,7 +163,7 @@ const VerifyAddress: FC = () => {
       return;
     }
     try {
-      const proofInfo = await getSolanaAirdropProofApi(publicKey.toBase58());
+      const proofInfo = await getSolanaAirdropProofApi(solSignedData.signer.toBase58());
       console.log(proofInfo);
 
       const res = await claimAirdropWithReceiver({
