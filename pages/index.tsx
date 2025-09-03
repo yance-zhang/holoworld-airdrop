@@ -41,8 +41,8 @@ const eligibleGroups = [
     icon: Eligible5,
   },
   {
-    title: 'NFT Pass holders',
-    description: 'Current NFT Pass holders are eligible for the airdrop',
+    title: 'NFT Pass Holders',
+    description: 'If you previously held a Holo NFT on opBNB or Arbitrum, please enter the same EVM wallet address here under the BNB section.\nYour eligibility is linked to your EVM address, not the network.',
     icon: Eligible6,
   },
 ];
@@ -129,7 +129,7 @@ const Home: FC = () => {
                 <span className="font-bold text-black/95 text-base">
                   {group.title}
                 </span>
-                <span className="font-medium text-black/65 text-xs">
+                <span className="font-medium text-black/65 text-xs whitespace-pre-line">
                   {group.description}
                 </span>
               </div>
