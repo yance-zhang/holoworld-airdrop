@@ -9,9 +9,12 @@ import ClockIcon from '@/assets/images/airdrop/clock.svg';
 import UnconnectedIcon from '@/assets/images/airdrop/unconnected.svg';
 import WalletIcon from '@/assets/images/layout/wallet.svg';
 import { formatBalanceNumber, shortenAddress } from '@/utils';
+import { useWallet } from '@solana/wallet-adapter-react';
 import clsx from 'clsx';
-import { FC, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { isAddress } from 'viem';
+import { useAccount, useDisconnect } from 'wagmi';
+import { NetworkTabs } from '../VerifyAddress';
 
 type addressInfo = {
   address: string;
@@ -41,7 +44,10 @@ const AddressItem: FC<{
           </span>
 
           {expandable && (
-            <span className="inline-flex w-7 h-7 items-center cursor-pointer justify-center rounded bg-black/5">
+            <span
+              onClick={() => disconnectAddress(address.address)}
+              className="inline-flex w-7 h-7 items-center cursor-pointer justify-center rounded bg-black/5"
+            >
               <UnconnectedIcon />
             </span>
           )}
@@ -106,9 +112,17 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
   const [inputValue, setInputValue] = useState<string>('');
   const [addressList, setAddressList] = useState<addressInfo[]>([]);
   const [checked, setChecked] = useState<boolean>(false);
+  const { address } = useAccount();
+  const { publicKey, disconnect: disconnectSolana } = useWallet();
+  const disconnectEvm = useDisconnect();
+  const [networkTab, setNetworkTab] = useState(NetworkTabs[0].name);
+
+  const limitSolAddress = networkTab == 'SOL' && addressList.length == 1;
+
+  const limitEvmAddress = networkTab == 'EVM' && addressList.length == 10;
 
   const handleAdd = () => {
-    if (!inputValue) return;
+    if (!inputValue || limitEvmAddress || limitSolAddress) return;
 
     setAddressList([
       ...addressList,
@@ -129,12 +143,10 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
 
       try {
         const request =
-          addr.network === 'EVM'
+          networkTab === 'EVM'
             ? getBscAirdropProofApi
             : getSolanaAirdropProofApi;
         const res = await request(addr.address);
-
-        console.log(res);
 
         if (res.error) {
           list.push(addr);
@@ -155,6 +167,52 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
 
   return (
     <div className="flex flex-col items-center gap-6 w-full p-4">
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex items-center gap-3">
+          <div
+            className="h-[1px] w-[87.5px]"
+            style={{
+              background:
+                'linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.16) 100%)',
+            }}
+          ></div>
+          <span className="font-semibold text-sm lg:text-base">
+            Select Claim Network
+          </span>
+          <div
+            className="h-[1px] w-[87.5px]"
+            style={{
+              background:
+                'linear-gradient(270deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.16) 100%)',
+            }}
+          ></div>
+        </div>
+        <div
+          role="tablist"
+          className="tabs tabs-box p-1 bg-black/5 rounded-full w-[307px] lg:w-[360px]"
+        >
+          {NetworkTabs.map((network) => (
+            <a
+              role="tab"
+              className={`tab gap-0.5 text-base rounded-full ${networkTab === network.name ? 'bg-[#FDFDFD] font-bold text-black/95' : 'text-[#0000005C] font-semibold'}`}
+              key={network.name}
+              onClick={() => {
+                setNetworkTab(network.name);
+
+                if (network.name === 'SOL') {
+                  disconnectEvm.disconnect();
+                } else {
+                  disconnectSolana();
+                }
+                setAddressList([]);
+              }}
+            >
+              {network.icon && <network.icon />}
+              {network.name}
+            </a>
+          ))}
+        </div>
+      </div>
       {/* add address */}
       <div className="flex flex-col gap-2">
         <span className="font-semibold text-sm">Verify Wallet Address*</span>
@@ -169,12 +227,15 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
           <button
             className={clsx(
               'btn btn-xs h-7 w-[140px] rounded-md border-none text-xs text-black/95 font-bold !bg-transparent',
-              inputValue ? '' : 'opacity-35',
+              inputValue && !limitSolAddress && !limitEvmAddress
+                ? ''
+                : 'opacity-35',
             )}
             style={{
-              background: inputValue
-                ? 'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)'
-                : '',
+              background:
+                inputValue && !limitSolAddress && !limitEvmAddress
+                  ? 'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)'
+                  : '',
             }}
             onClick={handleAdd}
           >
@@ -190,7 +251,8 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
             <WalletIcon className="w-4 h-4 text-black/90" />
             Check Up to{' '}
             <b className="font-bold text-black">
-              <b className="text-[#08EDDF]">{addressList.length}</b>/10
+              <b className="text-[#08EDDF]">{addressList.length}</b>/
+              {networkTab === 'SOL' ? 1 : 10}
             </b>{' '}
             Wallets
           </div>
@@ -209,7 +271,12 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
 
         {checked ? (
           <button
-            onClick={completeCheck}
+            onClick={() => {
+              if (addressList.find((addr) => !addr.proof)) {
+                return;
+              }
+              completeCheck();
+            }}
             className="btn mt-3 w-full lg:max-w-[650px] btn-sm h-10 max-h-10 bg-[#DAFF8029] border-none text-black/95 font-semibold text-xs"
           >
             <ClockIcon />

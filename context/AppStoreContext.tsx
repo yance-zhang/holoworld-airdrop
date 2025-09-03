@@ -10,42 +10,39 @@ import {
   SignData,
   useGenerateAirdropSignature,
 } from '@/contract/bnb';
+import { SolSignedData, useAirdropClaimOnSolana } from '@/contract/solana';
+import { shortenAddress } from '@/utils';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import { PublicKey } from '@solana/web3.js';
+import React, { createContext, useCallback, useContext, useState } from 'react';
 import { Address } from 'viem';
 import { useChainId, useDisconnect } from 'wagmi';
 import ConnectEvmWallet from '../components/ConnectWallet';
 import { useToast } from './ToastContext';
-import { shortenAddress } from '@/utils';
-import { SolSignedData, useAirdropClaimOnSolana } from '@/contract/solana';
-import { BN } from '@coral-xyz/anchor';
-import { PublicKey } from '@solana/web3.js';
 
 interface AppStoreContextType {
-  receiverAddress: string;
-  setReceiverAddress: (address: string) => void;
+  evmReceiverAddress: string;
+  setEvmReceiverAddress: (address: string) => void;
   reset: () => void;
   evmOpen: boolean;
   openEvm: () => void;
   closeEvm: () => void;
   evmAddressList: AirdropProof[];
   evmSignData: SignData[];
+  onEvmConnected: (address: string) => void;
+  solReceiverAddress: string;
+  setSolReceiverAddress: (address: string) => void;
   openSol: () => void;
   closeSol: () => void;
   solAddressList: AirdropProof[];
   solSignedData?: SolSignedData;
+  onSolConnected: (address: string) => void;
 }
 
 const AppStoreContext = createContext<AppStoreContextType>({
-  receiverAddress: '',
-  setReceiverAddress(address) {},
+  evmReceiverAddress: '',
+  setEvmReceiverAddress(address) {},
   reset() {},
   // evm
   evmOpen: false,
@@ -53,11 +50,15 @@ const AppStoreContext = createContext<AppStoreContextType>({
   evmSignData: [],
   openEvm: () => {},
   closeEvm: () => {},
+  onEvmConnected(address) {},
 
   // sol
+  solReceiverAddress: '',
+  setSolReceiverAddress(address) {},
   openSol: () => {},
   closeSol: () => {},
   solAddressList: [],
+  onSolConnected(address) {},
 });
 
 export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -68,7 +69,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const chainId = useChainId();
   const { addToast } = useToast();
   const { disconnect: disconnectEvm } = useDisconnect();
-  const [receiverAddress, setReceiverAddress] = useState<string>('');
+  const [evmReceiverAddress, setEvmReceiverAddress] = useState<string>('');
   const [evmOpen, setEvmOpen] = useState<boolean>(false);
   const [evmAddressList, setEvmAddressList] = useState<AirdropProof[]>([]);
   const [evmSignData, setEvmSignData] = useState<SignData[]>([]);
@@ -82,7 +83,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       const index = evmAddressList.findIndex(
         (addr) => addr.address === address,
       );
-      if (index > -1 || !receiverAddress) {
+      if (index > -1 || !evmReceiverAddress) {
         return;
       }
       const res = await getBscAirdropProofApi(address);
@@ -96,7 +97,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       const signData = await generateSignature({
         chainId: BigInt(chainId),
         contractAddress: evmContractAddress,
-        receiverAddress: receiverAddress as Address,
+        receiverAddress: evmReceiverAddress as Address,
         amount: BigInt(res.amount),
         proof: res.proof as any[],
         expiredAt: Math.floor(Date.now() / 1000) + 3600,
@@ -115,7 +116,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       evmAddressList,
       evmSignData,
       generateSignature,
-      receiverAddress,
+      evmReceiverAddress,
     ],
   );
 
@@ -123,6 +124,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const { setVisible } = useWalletModal();
   const { publicKey } = useWallet();
   const { signClaimReward } = useAirdropClaimOnSolana();
+  const [solReceiverAddress, setSolReceiverAddress] = useState<string>('');
   const [solAddressList, setSolAddressList] = useState<AirdropProof[]>([]);
   const [solSignedData, setSolSignedData] = useState<SolSignedData>();
 
@@ -144,7 +146,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         const res = await getSolanaAirdropProofApi(address);
         setSolAddressList([...solAddressList, res]);
 
-        if (!receiverAddress) {
+        if (!solReceiverAddress) {
           return;
         }
         const proof = res.proof.map((x) => Buffer.from(x, 'hex'));
@@ -153,7 +155,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const signRes = await signClaimReward(
           proofBuf,
-          new PublicKey(receiverAddress),
+          new PublicKey(solReceiverAddress),
           expireAt,
         );
 
@@ -162,45 +164,40 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         console.log(error);
       }
     },
-    [publicKey, solAddressList, receiverAddress],
+    [publicKey, solAddressList, solReceiverAddress],
   );
 
   const reset = () => {
-    setReceiverAddress('');
+    setSolReceiverAddress('');
+    setEvmReceiverAddress('');
     setEvmAddressList([]);
     setSolAddressList([]);
     setEvmSignData([]);
   };
 
-  useEffect(() => {
-    if (publicKey) {
-      onSolConnected(publicKey.toBase58());
-    }
-  }, [publicKey]);
-
   return (
     <AppStoreContext.Provider
       value={{
-        receiverAddress,
-        setReceiverAddress,
+        evmReceiverAddress,
+        setEvmReceiverAddress,
         openEvm,
         closeEvm,
         reset,
         evmOpen,
         evmAddressList,
         evmSignData,
+        onEvmConnected,
         openSol,
         closeSol,
+        solReceiverAddress,
+        setSolReceiverAddress,
         solAddressList,
         solSignedData,
+        onSolConnected,
       }}
     >
       {children}
-      <ConnectEvmWallet
-        open={evmOpen}
-        onClose={closeEvm}
-        onConnected={onEvmConnected}
-      />
+      <ConnectEvmWallet open={evmOpen} onClose={closeEvm} />
     </AppStoreContext.Provider>
   );
 };

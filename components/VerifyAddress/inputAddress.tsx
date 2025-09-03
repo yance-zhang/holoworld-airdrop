@@ -20,7 +20,7 @@ export const InputAddress: FC<{
 
   const handleAdd = () => {
     if (!receiver) {
-      addToast('Please enter receiver address.', 'warning');
+      addToast('Please connect receiver address.', 'warning');
       return;
     }
     if (network === 'EVM') {

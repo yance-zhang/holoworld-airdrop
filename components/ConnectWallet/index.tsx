@@ -5,8 +5,7 @@ import { useAccount, useConnect, useDisconnect } from 'wagmi';
 const ConnectWallet: FC<{
   open: boolean;
   onClose: () => void;
-  onConnected: (address: string) => void;
-}> = ({ open, onClose, onConnected }) => {
+}> = ({ open, onClose }) => {
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
   const { connectors, connect } = useConnect();
@@ -15,13 +14,6 @@ const ConnectWallet: FC<{
   const filteredConnectors = connectors.filter(
     (c) => c.name !== 'Injected' && c.name !== 'Phantom',
   );
-
-  useEffect(() => {
-    if (address && address !== lastConnectedAddress.current) {
-      lastConnectedAddress.current = address;
-      onConnected(address);
-    }
-  }, [address, onConnected]);
 
   return (
     <dialog open={open} className="modal bg-black/50">
@@ -48,10 +40,6 @@ const ConnectWallet: FC<{
                     {
                       onSuccess: (info) => {
                         onClose();
-                        if (info.accounts[0] !== lastConnectedAddress.current) {
-                          lastConnectedAddress.current = info.accounts[0];
-                          onConnected(info.accounts[0]);
-                        }
                       },
                     },
                   )
