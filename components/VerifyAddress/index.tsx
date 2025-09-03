@@ -1,6 +1,6 @@
 import { AirdropProof, getSolanaAirdropProofApi } from '@/api';
+import AddIcon from '@/assets/images/airdrop/add.svg';
 import ArrowDown from '@/assets/images/airdrop/arrow-down.svg';
-import BnbIcon from '@/assets/images/airdrop/bnb.svg';
 import EthIcon from '@/assets/images/airdrop/eth.svg';
 import SolIcon from '@/assets/images/airdrop/sol.svg';
 import UnconnectedIcon from '@/assets/images/airdrop/unconnected.svg';
@@ -13,14 +13,13 @@ import { formatBalanceNumber, shortenAddress } from '@/utils';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import clsx from 'clsx';
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useRef, useState } from 'react';
 import { formatEther } from 'viem';
 import { useAccount, useDisconnect } from 'wagmi';
 import AddWalletModal from '../AddWalletModal';
 import ClaimModal from '../ClaimModal';
-import { InputAddress } from './inputAddress';
 
-const NetworkTabs = [
+export const NetworkTabs = [
   { name: 'SOL', icon: SolIcon },
   { name: 'EVM', icon: EthIcon },
 ];
@@ -115,14 +114,18 @@ const VerifyAddress: FC = () => {
   const { addToast } = useToast();
   const {
     evmAddressList,
-    solAddressList,
-    receiverAddress,
-    setReceiverAddress,
+    evmReceiverAddress,
+    setEvmReceiverAddress,
     openEvm,
-    openSol,
     evmSignData,
+    onEvmConnected,
     reset,
+    solAddressList,
     solSignedData,
+    openSol,
+    solReceiverAddress,
+    setSolReceiverAddress,
+    onSolConnected,
   } = useAppStore();
   const { multiClaim } = useAirdropClaimOnBSC();
   const { claimAirdrop, claimAirdropWithReceiver } = useAirdropClaimOnSolana();
@@ -132,6 +135,7 @@ const VerifyAddress: FC = () => {
   const [networkTab, setNetworkTab] = useState(NetworkTabs[0].name);
   const [addWalletOpen, setAddWalletOpen] = useState<boolean>(false);
   const [claimOpen, setClaimOpen] = useState<boolean>(false);
+  const connectType = useRef<'receiver' | 'sender' | 'none'>('none');
 
   const handleAddAddress = (addr: string, network: string) => {
     if (!addr) return;
@@ -164,7 +168,6 @@ const VerifyAddress: FC = () => {
     }
     try {
       const proofInfo = await getSolanaAirdropProofApi(publicKey.toBase58());
-      console.log(proofInfo);
 
       const res = await claimAirdropWithReceiver({
         proofInfo,
@@ -178,20 +181,64 @@ const VerifyAddress: FC = () => {
 
   const handleClaim = () => {
     if (networkTab === 'SOL') {
-      if (publicKey?.toBase58() !== receiverAddress) {
+      if (publicKey?.toBase58() !== solReceiverAddress) {
         openSol();
         return;
       }
       claimOnSolana();
     }
     if (networkTab === 'EVM') {
-      if (address !== receiverAddress) {
+      if (address !== evmReceiverAddress) {
         openEvm();
         return;
       }
       claimOnBsc();
     }
   };
+
+  const openConnect = () => {
+    if (networkTab == 'EVM') {
+      openEvm();
+    }
+    if (networkTab == 'SOL') {
+      openSol();
+    }
+  };
+
+  const connectReceiverAddress = () => {
+    connectType.current = 'receiver';
+    openConnect();
+  };
+
+  const connectSenderAddress = () => {
+    connectType.current = 'sender';
+
+    openConnect();
+  };
+
+  useEffect(() => {
+    if (publicKey) {
+      if (connectType.current === 'receiver') {
+        setSolReceiverAddress(publicKey.toBase58());
+      }
+      if (connectType.current === 'sender') {
+        onSolConnected(publicKey.toBase58());
+      }
+      connectType.current = 'none';
+    }
+  }, [connectType, publicKey]);
+
+  useEffect(() => {
+    if (address) {
+      if (connectType.current === 'receiver') {
+        setEvmReceiverAddress(address);
+      }
+      if (connectType.current === 'sender') {
+        onEvmConnected(address);
+      }
+      connectType.current = 'none';
+    }
+  }, [connectType, address]);
 
   useEffect(() => {
     disconnectEvm.disconnect();
@@ -210,55 +257,55 @@ const VerifyAddress: FC = () => {
 
   return (
     <div className="flex flex-col items-center gap-6 w-full">
-      {
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-3">
-            <div
-              className="h-[1px] w-[87.5px]"
-              style={{
-                background:
-                  'linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.16) 100%)',
-              }}
-            ></div>
-            <span className="font-semibold text-sm lg:text-base">
-              Select Claim Network
-            </span>
-            <div
-              className="h-[1px] w-[87.5px]"
-              style={{
-                background:
-                  'linear-gradient(270deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.16) 100%)',
-              }}
-            ></div>
-          </div>
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex items-center gap-3">
           <div
-            role="tablist"
-            className="tabs tabs-box p-1 bg-black/5 rounded-full w-[307px] lg:w-[360px]"
-          >
-            {NetworkTabs.map((network) => (
-              <a
-                role="tab"
-                className={`tab gap-0.5 text-base rounded-full ${networkTab === network.name ? 'bg-[#FDFDFD] font-bold text-black/95' : 'text-[#0000005C] font-semibold'}`}
-                key={network.name}
-                onClick={() => {
-                  setNetworkTab(network.name);
-                  setReceiverAddress('');
-
-                  if (network.name === 'SOL') {
-                    disconnectEvm.disconnect();
-                  } else {
-                    disconnectSolana();
-                  }
-                  reset();
-                }}
-              >
-                {network.icon && <network.icon />}
-                {network.name}
-              </a>
-            ))}
-          </div>
+            className="h-[1px] w-[87.5px]"
+            style={{
+              background:
+                'linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.16) 100%)',
+            }}
+          ></div>
+          <span className="font-semibold text-sm lg:text-base">
+            Select Claim Network
+          </span>
+          <div
+            className="h-[1px] w-[87.5px]"
+            style={{
+              background:
+                'linear-gradient(270deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.16) 100%)',
+            }}
+          ></div>
         </div>
-      }
+        <div
+          role="tablist"
+          className="tabs tabs-box p-1 bg-black/5 rounded-full w-[307px] lg:w-[360px]"
+        >
+          {NetworkTabs.map((network) => (
+            <a
+              role="tab"
+              className={`tab gap-0.5 text-base rounded-full ${networkTab === network.name ? 'bg-[#FDFDFD] font-bold text-black/95' : 'text-[#0000005C] font-semibold'}`}
+              key={network.name}
+              onClick={() => {
+                setNetworkTab(network.name);
+                setSolReceiverAddress('');
+                setEvmReceiverAddress('');
+
+                if (network.name === 'SOL') {
+                  disconnectEvm.disconnect();
+                } else {
+                  disconnectSolana();
+                }
+                reset();
+              }}
+            >
+              {network.icon && <network.icon />}
+              {network.name}
+            </a>
+          ))}
+        </div>
+      </div>
+
       {/* receive address */}
       <div className="flex flex-col gap-2 w-full lg:w-[522px] px-6">
         <div className="flex flex-col gap-0.5">
@@ -267,23 +314,56 @@ const VerifyAddress: FC = () => {
             Assign a wallet to receive your $HOLO rewards
           </span>
         </div>
-        <label className="input input-sm flex items-center gap-2 h-10 bg-black/5 max-w-full w-full lg:w-[522px]">
-          <input
-            type="text"
-            className="h-full w-full font-medium text-xs"
-            placeholder="Enter and verify wallet address to claim airdrop"
-            value={receiverAddress}
-            onChange={(e) => setReceiverAddress(e.target.value)}
-          />
+        <label className="input input-sm flex items-center justify-between gap-2 h-10 bg-black/5 max-w-full w-full lg:w-[522px]">
+          <span className="text-xs font-medium">
+            {shortenAddress(
+              networkTab === 'SOL' ? solReceiverAddress : evmReceiverAddress,
+            )}
+          </span>
+          <button
+            className={clsx(
+              'btn btn-xs h-7 w-[140px] rounded-md border-none text-xs text-black/95 font-bold !bg-transparent',
+            )}
+            style={{
+              background:
+                'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
+            }}
+            onClick={connectReceiverAddress}
+          >
+            <AddIcon /> Connect Wallet
+          </button>
         </label>
       </div>
       {/* add address */}
-      <InputAddress
-        onAdd={handleAddAddress}
-        network={networkTab}
-        receiver={receiverAddress}
-        showButton
-      />
+      <div className="flex flex-col gap-2 w-full lg:w-[522px] px-6">
+        <div className="flex flex-col gap-0.5">
+          <span className="font-semibold text-sm">
+            Verify Wallet Address To Claim From*
+          </span>
+          <span className="font-medium text-xs text-black/65">
+            Connect eligible wallets to claim $HOLO
+          </span>
+        </div>
+        {
+          <label className="input input-sm flex items-center justify-between gap-2 h-10 bg-black/5 max-w-full w-full lg:w-[522px]">
+            <span className="text-xs font-medium">
+              {/* {networkTab === 'SOL' ? publicKey?.toBase58() : address} */}
+            </span>
+            <button
+              className={clsx(
+                'btn btn-xs h-7 w-[140px] rounded-md border-none text-xs text-black/95 font-bold !bg-transparent',
+              )}
+              style={{
+                background:
+                  'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
+              }}
+              onClick={connectSenderAddress}
+            >
+              <AddIcon /> Connect Wallet
+            </button>
+          </label>
+        }
+      </div>
       {/* address list */}
       <div className="flex flex-col items-center w-full px-3">
         {networkTab === 'EVM' && (
@@ -333,8 +413,8 @@ const VerifyAddress: FC = () => {
               'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
           }}
         >
-          {(networkTab === 'EVM' && receiverAddress !== address) ||
-          (networkTab === 'SOL' && receiverAddress !== publicKey?.toBase58())
+          {(networkTab === 'EVM' && evmReceiverAddress !== address) ||
+          (networkTab === 'SOL' && solReceiverAddress !== publicKey?.toBase58())
             ? 'Connect Receiver Account'
             : 'Claim Now'}
         </button>

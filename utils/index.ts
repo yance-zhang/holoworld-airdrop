@@ -1,4 +1,9 @@
+import { PublicKey } from '@solana/web3.js';
+
 export const shortenAddress = (address: string) => {
+  if (!address) {
+    return '';
+  }
   return address.slice(0, 6) + '...' + address.slice(-4);
 };
 
@@ -59,3 +64,24 @@ export const stringToHex = (string: string) => {
 
   return hex;
 };
+
+export function checkSolanaAddress(address: string) {
+  // 检查长度
+  if (address.length < 43 || address.length > 48) {
+    return { valid: false, reason: 'Invalid address length' };
+  }
+
+  // 检查Base58字符
+  const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
+  if (!base58Regex.test(address)) {
+    return { valid: false, reason: 'Invalid Base58 characters' };
+  }
+
+  // 检查公钥有效性
+  try {
+    new PublicKey(address);
+    return { valid: true, reason: 'Valid Solana address' };
+  } catch (error) {
+    return { valid: false, reason: 'Invalid public key' };
+  }
+}
