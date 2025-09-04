@@ -8,7 +8,6 @@ import Eligible4 from '@/assets/images/layout/eligible-4.svg';
 import Eligible5 from '@/assets/images/layout/eligible-5.svg';
 import Eligible6 from '@/assets/images/layout/eligible-6.svg';
 import EligibleCheck from '@/components/EligibleCheck';
-import CheckAndSign from '@/components/EligibleCheck/checkAndSign';
 import VerifyAddress from '@/components/VerifyAddress';
 import Image from 'next/image';
 import { FC, useState } from 'react';
@@ -107,11 +106,7 @@ const Home: FC = () => {
             </div>
           </div>
           <div className="w-full py-8 bg-white/35 border-2 border-white rounded-3xl backdrop-blur-3xl">
-            {state === 'check' && (
-              <CheckAndSign completeCheck={completeCheck} />
-            )}
-            {state === 'claim' && <VerifyAddress />}
-            {/* <VerifyAddress /> */}
+            <EligibleCheck completeCheck={completeCheck} />
           </div>
         </div>
 
