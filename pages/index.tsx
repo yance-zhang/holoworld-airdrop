@@ -13,7 +13,7 @@ import { FC, useState } from 'react';
 const eligibleGroups = [
   {
     title: 'AVA Stakers',
-    description: 'Eligible based on yourstaked amount andstaking duration',
+    description: 'Eligible based on your staked amount and staking duration',
     icon: Eligible1,
   },
   {
