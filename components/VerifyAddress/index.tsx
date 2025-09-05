@@ -6,18 +6,18 @@ import SolIcon from '@/assets/images/airdrop/sol.svg';
 import UnconnectedIcon from '@/assets/images/airdrop/unconnected.svg';
 import WalletIcon from '@/assets/images/layout/wallet.svg';
 import { useAppStore } from '@/context/AppStoreContext';
-import { useToast } from '@/context/ToastContext';
 import { useAirdropClaimOnBSC } from '@/contract/bnb';
 import { useAirdropClaimOnSolana } from '@/contract/solana';
 import { formatBalanceNumber, shortenAddress } from '@/utils';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import clsx from 'clsx';
-import { FC, useEffect, useRef, useState } from 'react';
+import { FC, useState } from 'react';
 import { formatEther } from 'viem';
 import { useAccount, useDisconnect } from 'wagmi';
 import AddWalletModal from '../AddWalletModal';
 import ClaimModal from '../ClaimModal';
+import DisclaimerModal from '../DisclaimerModal';
 
 export const NetworkTabs = [
   { name: 'SOL', icon: SolIcon },
@@ -111,33 +111,23 @@ const AirdropItem: FC<{
 };
 
 const VerifyAddress: FC = () => {
-  const { addToast } = useToast();
   const {
     evmAddressList,
     evmReceiverAddress,
-    setEvmReceiverAddress,
     openEvm,
     evmSignData,
-    onEvmConnected,
-    reset,
     solAddressList,
     solSignedData,
     openSol,
     solReceiverAddress,
-    setSolReceiverAddress,
-    onSolConnected,
   } = useAppStore();
   const { multiClaim } = useAirdropClaimOnBSC();
-  const { claimAirdrop, claimAirdropWithReceiver } = useAirdropClaimOnSolana();
+  const { claimAirdropWithReceiver } = useAirdropClaimOnSolana();
   const { address } = useAccount();
-  const { publicKey, disconnect: disconnectSolana } = useWallet();
-  const disconnectEvm = useDisconnect();
+  const { publicKey } = useWallet();
   const [addWalletOpen, setAddWalletOpen] = useState<boolean>(false);
   const [claimOpen, setClaimOpen] = useState<boolean>(false);
-  const connectType = useRef<'receiver' | 'sender' | 'none'>('none');
-
-  const limitEvmAddress = evmAddressList.length === 10;
-  const limitSolAddress = solAddressList.length === 1;
+  const [disclaimerOpen, setDisclaimerOpen] = useState<boolean>(false);
 
   const networkTab = solReceiverAddress ? 'SOL' : 'EVM';
 
@@ -174,7 +164,6 @@ const VerifyAddress: FC = () => {
       const proofInfo = await getSolanaAirdropProofApi(
         solSignedData.signer.toBase58(),
       );
-      console.log(proofInfo);
 
       const res = await claimAirdropWithReceiver({
         proofInfo,
@@ -187,6 +176,7 @@ const VerifyAddress: FC = () => {
   };
 
   const handleClaim = () => {
+    setDisclaimerOpen(false);
     if (networkTab === 'SOL') {
       if (publicKey?.toBase58() !== solReceiverAddress) {
         openSol();
@@ -289,7 +279,7 @@ const VerifyAddress: FC = () => {
 
         <button
           className="btn mt-3 w-[280px] lg:w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
-          onClick={handleClaim}
+          onClick={() => setDisclaimerOpen(true)}
           disabled={
             (networkTab === 'EVM' && evmAddressList.length === 0) ||
             (networkTab === 'SOL' && !publicKey)
@@ -326,6 +316,12 @@ const VerifyAddress: FC = () => {
         open={claimOpen}
         onClose={() => setClaimOpen(false)}
         network={NetworkTabs[networkTab === 'SOL' ? 0 : 1]}
+      />
+
+      <DisclaimerModal
+        open={disclaimerOpen}
+        onClose={() => setDisclaimerOpen(false)}
+        onConfirm={handleClaim}
       />
     </div>
   );

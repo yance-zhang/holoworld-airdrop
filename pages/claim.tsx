@@ -4,10 +4,9 @@ import Envelope from '@/assets/images/airdrop/envelope.png';
 import Eligible1 from '@/assets/images/layout/eligible-1.svg';
 import Eligible2 from '@/assets/images/layout/eligible-2.svg';
 import Eligible3 from '@/assets/images/layout/eligible-3.svg';
-import Eligible4 from '@/assets/images/layout/eligible-4.svg';
 import Eligible5 from '@/assets/images/layout/eligible-5.svg';
 import Eligible6 from '@/assets/images/layout/eligible-6.svg';
-import EligibleCheck from '@/components/EligibleCheck';
+import CheckAndSign from '@/components/EligibleCheck/checkAndSign';
 import VerifyAddress from '@/components/VerifyAddress';
 import Image from 'next/image';
 import { FC, useState } from 'react';
@@ -15,7 +14,7 @@ import { FC, useState } from 'react';
 const eligibleGroups = [
   {
     title: 'AVA Stakers',
-    description: 'Eligible based on yourstaked amount andstaking duration',
+    description: 'Eligible based on your staked amount and staking duration',
     icon: Eligible1,
   },
   {
@@ -106,9 +105,19 @@ const Home: FC = () => {
             </div>
           </div>
           <div className="w-full py-8 bg-white/35 border-2 border-white rounded-3xl backdrop-blur-3xl">
-            <EligibleCheck completeCheck={completeCheck} />
+            {state === 'check' && (
+              <CheckAndSign completeCheck={completeCheck} />
+            )}
+            {state === 'claim' && <VerifyAddress />}
+            {/* <VerifyAddress /> */}
           </div>
         </div>
+
+        <a className="" href="#" target={'_blank'}>
+          <button className="btn btn-sm bg-transparent border-black text-black rounded-full hover:bg-transparent hover:text-[#6FFFCB] hover:border-[#6FFFCB]">
+            Terms and Conditions
+          </button>
+        </a>
 
         {/* eligible */}
         <div className="flex flex-col gap-4 w-full">
