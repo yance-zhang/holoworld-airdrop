@@ -47,38 +47,38 @@ const AirdropItem: FC<{
   return (
     <div
       className={clsx(
-        'flex flex-col items-stretch p-[1px] rounded-xl transition-all bg-[#00000005]',
+        'flex flex-col items-stretch p-[1px] rounded-xl transition-all',
         showDetail ? 'max-h-[300px]' : 'max-h-[42px]',
       )}
     >
-      <div className="flex items-center justify-between px-1.5 lg:px-3 py-1.5 bg-white/90 rounded-xl">
-        <div className="flex items-center gap-1 font-semibold text-sm">
+      <div className="flex items-center justify-between px-1.5 lg:px-3 py-1.5 rounded-xl">
+        <div className="flex items-center gap-1 font-semibold text-sm text-white">
           <span className="flex items-center gap-0.5">
             {network === 'SOL' ? <SolIcon /> : <EthIcon />}
             {network}:
           </span>
-          <span className="font-semibold text-xs lg:text-sm text-black/90">
+          <span className="font-semibold text-xs lg:text-sm">
             {shortenAddress(airdrop.address)}
           </span>
           <span
             onClick={disconnectWallet}
-            className="inline-flex w-7 h-7 items-center justify-center rounded bg-black/5"
+            className="inline-flex w-7 h-7 items-center justify-center rounded bg-[#FF3666]/20 text-[#FF3666]"
           >
             <UnconnectedIcon />
           </span>
         </div>
         <div
           onClick={() => setShowDetail(!showDetail)}
-          className="flex items-center justify-between w-40 px-2 rounded-md bg-[#DAFF8052] cursor-pointer"
+          className="flex items-center justify-between h-7 px-2 rounded-md cursor-pointer border border-[#15CE8C]"
         >
-          <span className="font-medium text-xs lg:text-sm text-black/80">
-            <b className="font-bold text-black">
+          <span className="font-medium text-xs lg:text-sm">
+            <b className="font-bold">
               {formatBalanceNumber(
                 network === 'EVM'
                   ? formatEther(BigInt(airdrop.amount))
                   : Number(airdrop.amount) / LAMPORTS_PER_SOL,
               )}{' '}
-              $HOLO
+              <span className="hidden lg:inline-block"> $HOLO</span>
             </b>
           </span>
           <ArrowDown
@@ -88,17 +88,17 @@ const AirdropItem: FC<{
       </div>
       {showDetail && (
         <div className="flex flex-col p-2 gap-2">
-          <span className="font-medium text-sm text-black/80">
+          <span className="font-medium text-sm text-white/50 pl-2">
             Eligible Types:
           </span>
           <div className="">
             {Object.entries(airdrop.detail).map(([type, amount]) => (
               <span
                 key={type}
-                className="inline-block py-1.5 px-2 mr-2 mb-2 rounded-md text-[#ACC220] font-semibold text-xs lg:text-sm bg-[#DAFF8029] capitalize"
+                className="inline-block py-1.5 px-2 mr-2 mb-2 rounded-md text-white font-semibold text-xs lg:text-sm capitalize"
               >
                 {type.replaceAll('_', ' ')}{' '}
-                <span className="text-black/90">
+                <span className="text-[#15CE8C]">
                   {formatBalanceNumber(amount)} $HOLO
                 </span>
               </span>
@@ -212,15 +212,26 @@ const VerifyAddress: FC = () => {
 
   return (
     <div className="flex flex-col items-center gap-6 w-full">
+      {networkTab === 'EVM' && (
+        <div className="flex items-center justify-center gap-2 h-[83px] w-full lg:w-[698px] px-6">
+          <span className="font-semibold text-sm">Total Eligible Token</span>
+          <span className="flex items-end font-[PPMonumentExtended]">
+            <span className="font-bold text-[30px]">
+              {formatBalanceNumber(formatEther(totalAmount))}
+            </span>
+            <span className="font-medium text-xs text-white/80">$HOLO</span>
+          </span>
+        </div>
+      )}
       {/* receive address */}
-      <div className="flex flex-col gap-2 w-full lg:w-[522px] px-6">
+      <div className="flex flex-col gap-2 w-full lg:w-[814px] px-6">
         <div className="flex flex-col gap-0.5">
           <span className="font-semibold text-sm">Receiving Address*</span>
-          <span className="font-medium text-xs text-black/65">
+          <span className="font-medium text-xs text-white/65">
             Assign a wallet to receive your $HOLO rewards
           </span>
         </div>
-        <label className="input input-sm flex items-center justify-between gap-2 h-10 bg-black/5 max-w-full w-full lg:w-[522px]">
+        <label className="input input-sm flex items-center justify-between gap-2 h-10 bg-black/5 max-w-full w-full">
           <span className="text-xs font-medium">
             {shortenAddress(
               networkTab === 'SOL' ? solReceiverAddress : evmReceiverAddress,
@@ -242,26 +253,14 @@ const VerifyAddress: FC = () => {
       </div>
       {/* address list */}
       <div className="flex flex-col items-center w-full px-3">
-        {networkTab === 'EVM' && (
-          <div className="flex items-center justify-between h-[83px] w-full lg:w-[698px] px-6 rounded-2xl border border-white bg-white/35">
-            <span className="font-semibold text-sm">Total Eligible Token</span>
-            <span className="flex items-end font-[PPMonumentExtended]">
-              <span className="font-bold text-[30px]">
-                {formatBalanceNumber(formatEther(totalAmount))}
-              </span>
-              <span className="font-medium text-xs text-black/80">$HOLO</span>
-            </span>
-          </div>
-        )}
-        <div className="flex flex-col w-full lg:w-[650px] py-3 gap-4 px-0 lg:px-16 bg-white/80 rounded-b-2xl">
+        <div className="flex flex-col w-full lg:w-[650px] py-3 gap-4 px-0">
           <div className="flex items-center justify-center gap-1 text-sm font-medium">
-            <WalletIcon className="w-4 h-4 text-black/90" />
             Verified{' '}
-            <b className="font-bold text-black">
+            <b className="font-bold text-white">
               <b className="text-[#08EDDF]">{verifiedCount}</b>/
               {networkTab === 'SOL' ? 1 : 10}
             </b>{' '}
-            wallets
+            wallets <WalletIcon className="w-4 h-4 text-white/90" />
           </div>
           <div className="flex flex-col gap-3">
             {(networkTab === 'SOL' ? solAddressList : evmAddressList).map(

@@ -1,15 +1,12 @@
 import CloseIcon from '@/assets/images/wallets/close.svg';
-import { FC, useEffect, useRef } from 'react';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { FC } from 'react';
+import { useConnect } from 'wagmi';
 
 const ConnectWallet: FC<{
   open: boolean;
   onClose: () => void;
 }> = ({ open, onClose }) => {
-  const { address } = useAccount();
-  const { disconnect } = useDisconnect();
   const { connectors, connect } = useConnect();
-  const lastConnectedAddress = useRef<string | null>(null);
 
   const filteredConnectors = connectors.filter(
     (c) => c.name !== 'Injected' && c.name !== 'Phantom',
@@ -17,7 +14,7 @@ const ConnectWallet: FC<{
 
   return (
     <dialog open={open} className="modal bg-black/50">
-      <div className="modal-box w-[90vw] lg:w-[440px] lg:max-w-[440px] p-6 bg-[#F6F6F6] rounded-[20px]">
+      <div className="modal-box w-[90vw] lg:w-[440px] lg:max-w-[440px] p-6 bg-[#121212] rounded-[20px]">
         <button
           className="btn btn-xs btn-circle btn-ghost absolute right-6 top-6"
           onClick={onClose}
@@ -26,7 +23,7 @@ const ConnectWallet: FC<{
         </button>
         <div className="flex flex-col gap-6">
           <div className="text-center text-lg font-bold leading-tight text-yellow">
-            Add wallet
+            Connect wallet
           </div>
 
           <div className="flex flex-wrap justify-center gap-4">

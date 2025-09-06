@@ -9,7 +9,7 @@ const DisclaimerModal: FC<{
 }> = ({ open, onClose, onConfirm }) => {
   return createPortal(
     <dialog open={open} className="modal bg-black/50">
-      <div className="modal-box w-[440px] max-w-[440px] p-6 bg-[#F6F6F6] rounded-[20px]">
+      <div className="modal-box w-[440px] max-w-[440px] p-6 bg-[#121212] rounded-[20px]">
         <button
           className="btn btn-xs btn-circle btn-ghost absolute right-6 top-6"
           onClick={onClose}
@@ -21,7 +21,7 @@ const DisclaimerModal: FC<{
             Disclaimer
           </div>
 
-          <div className="text-sm leading-5 tracking-tight max-w-prose whitespace-pre-wrap break-words max-h-[calc(100vh-243px)] overflow-scroll">
+          <div className="text-sm text-white/80 leading-5 tracking-tight max-w-prose whitespace-pre-wrap break-words max-h-[calc(100vh-243px)] overflow-scroll">
             {`Please read carefully before claiming your $HOLO tokens.
 By continuing, you confirm that you have read, understood, and accepted the following:
 
@@ -57,7 +57,7 @@ We may collect and process data (e.g., wallet addresses, ecosystem activity) per
 
           <div className="grid grid-cols-3 gap-2 mt-3">
             <button
-              className="btn rounded-full border-none text-black/95 font-bold text-sm"
+              className="btn rounded-full border-none text-white/80 font-bold text-sm"
               onClick={onClose}
             >
               Decline

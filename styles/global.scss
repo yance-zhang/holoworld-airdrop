@@ -26,15 +26,15 @@
 }
 
 html {
-  background: #f6f6f6 !important;
+  background: #000 !important;
 }
 
 body {
   width: 100vw;
   height: 100vh;
   font-family: var(--font-inter);
-  background-color: #f6f6f6 !important;
-  color: #000;
+  background-color: #000 !important;
+  color: #fff;
   overscroll-behavior: none;
   background-size: cover;
 }
