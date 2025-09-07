@@ -110,7 +110,9 @@ const AirdropItem: FC<{
   );
 };
 
-const VerifyAddress: FC = () => {
+const VerifyAddress: FC<{ completeClaim: (amount: number) => void }> = ({
+  completeClaim,
+}) => {
   const {
     evmAddressList,
     evmReceiverAddress,
@@ -130,6 +132,15 @@ const VerifyAddress: FC = () => {
   const [disclaimerOpen, setDisclaimerOpen] = useState<boolean>(false);
 
   const networkTab = solReceiverAddress ? 'SOL' : 'EVM';
+
+  const verifiedCount =
+    networkTab === 'SOL' ? solAddressList.length : evmAddressList.length;
+
+  const totalAmount = (
+    networkTab === 'SOL' ? solAddressList : evmAddressList
+  ).reduce((pre, cur) => {
+    return pre + BigInt(cur.amount);
+  }, 0n);
 
   const handleAddAddress = (addr: string, network: string) => {
     if (!addr) return;
@@ -151,6 +162,7 @@ const VerifyAddress: FC = () => {
       const res = await multiClaim(phase, evmSignData);
 
       console.log(res);
+      completeClaim(Number(formatEther(totalAmount)));
     } catch (error) {
       console.log(error);
     }
@@ -170,6 +182,7 @@ const VerifyAddress: FC = () => {
         signedData: solSignedData,
       });
       console.log(res);
+      completeClaim(Number(proofInfo.amount) / LAMPORTS_PER_SOL);
     } catch (error) {
       console.log(error);
     }
@@ -200,15 +213,6 @@ const VerifyAddress: FC = () => {
       openSol();
     }
   };
-
-  const verifiedCount =
-    networkTab === 'SOL' ? solAddressList.length : evmAddressList.length;
-
-  const totalAmount = (
-    networkTab === 'SOL' ? solAddressList : evmAddressList
-  ).reduce((pre, cur) => {
-    return pre + BigInt(cur.amount);
-  }, 0n);
 
   return (
     <div className="flex flex-col items-center gap-6 w-full">

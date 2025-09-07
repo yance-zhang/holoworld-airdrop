@@ -5,6 +5,7 @@ import Eligible5 from '@/assets/images/layout/eligible-5.svg';
 import Eligible6 from '@/assets/images/layout/eligible-6.svg';
 import HoloIcon from '@/assets/images/layout/holo.svg';
 import CheckAndSign from '@/components/EligibleCheck/checkAndSign';
+import Stake from '@/components/Stake';
 import VerifyAddress from '@/components/VerifyAddress';
 import { FC, useState } from 'react';
 
@@ -39,9 +40,17 @@ const eligibleGroups = [
 ];
 
 const Home: FC = () => {
-  const [state, setState] = useState<'check' | 'claim'>('check');
+  const [state, setState] = useState<'check' | 'claim' | 'stake'>('check');
+  const [claimAmount, setClaimAmount] = useState<number>(0);
 
-  const completeCheck = () => setState('claim');
+  const completeCheck = () => {
+    setState('claim');
+  };
+
+  const completeClaim = (amount: number) => {
+    setState('stake');
+    setClaimAmount(amount);
+  };
 
   return (
     <div className="relative flex flex-col items-center max-w-[100vw] p-4">
@@ -84,7 +93,10 @@ const Home: FC = () => {
             {state === 'check' && (
               <CheckAndSign completeCheck={completeCheck} />
             )}
-            {state === 'claim' && <VerifyAddress />}
+            {state === 'claim' && (
+              <VerifyAddress completeClaim={completeClaim} />
+            )}
+            {state === 'stake' && <Stake amount={claimAmount} />}
           </div>
         </div>
 
