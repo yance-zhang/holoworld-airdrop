@@ -11,11 +11,9 @@ import SolIcon from '@/assets/images/airdrop/sol.svg';
 import UnconnectedIcon from '@/assets/images/airdrop/unconnected.svg';
 import WalletIcon from '@/assets/images/layout/wallet.svg';
 import { formatBalanceNumber, shortenAddress } from '@/utils';
-import { useWallet } from '@solana/wallet-adapter-react';
 import clsx from 'clsx';
 import { FC, useState } from 'react';
 import { formatEther, isAddress } from 'viem';
-import { useDisconnect } from 'wagmi';
 import { NetworkTabs } from '../VerifyAddress';
 
 type addressInfo = {
@@ -126,8 +124,6 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
   const [inputValue, setInputValue] = useState<string>('');
   const [addressList, setAddressList] = useState<addressInfo[]>([]);
   const [checked, setChecked] = useState<boolean>(false);
-  const { disconnect: disconnectSolana } = useWallet();
-  const disconnectEvm = useDisconnect();
   const [networkTab, setNetworkTab] = useState(NetworkTabs[0].name);
 
   const limitSolAddress = networkTab == 'SOL' && addressList.length == 1;
@@ -146,6 +142,7 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
     ]);
 
     setInputValue('');
+    setChecked(false);
   };
 
   const handleCheck = async () => {
@@ -193,13 +190,8 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
               key={network.name}
               onClick={() => {
                 setNetworkTab(network.name);
-
-                if (network.name === 'SOL') {
-                  disconnectEvm.disconnect();
-                } else {
-                  disconnectSolana();
-                }
                 setAddressList([]);
+                setChecked(false);
               }}
             >
               {network.icon && <network.icon />}
