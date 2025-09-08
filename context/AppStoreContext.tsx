@@ -81,7 +81,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const onEvmConnected = useCallback(
     async (address: string) => {
       const index = evmAddressList.findIndex(
-        (addr) => addr.address === address,
+        (addr) => addr.proofs[0].address === address,
       );
       if (index > -1 || !evmReceiverAddress) {
         return;
@@ -98,8 +98,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         chainId: BigInt(chainId),
         contractAddress: evmContractAddress,
         receiverAddress: evmReceiverAddress as Address,
-        amount: BigInt(res.amount),
-        proof: res.proof as any[],
+        amount: BigInt(res.proofs[0].amount),
+        proof: res.proofs[0].proof as any[],
         expiredAt: Math.floor(Date.now() / 1000) + 3600,
       });
 
@@ -137,7 +137,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const onSolConnected = useCallback(
     async (address: string) => {
       if (
-        solAddressList.find((addr) => addr.address === address) ||
+        solAddressList.find((addr) => addr.proofs[0].address === address) ||
         solAddressList.length === 1
       ) {
         return;
@@ -149,7 +149,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!solReceiverAddress) {
           return;
         }
-        const proof = res.proof.map((x) => Buffer.from(x, 'hex'));
+        const proof = res.proofs[0].proof.map((x) => Buffer.from(x, 'hex'));
         const proofBuf = Buffer.concat(proof);
         const expireAt = Math.floor(Date.now() / 1000) + 3600;
 

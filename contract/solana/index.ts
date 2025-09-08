@@ -127,15 +127,21 @@ export const useAirdropClaimOnSolana = () => {
     const dataHash = await sha256(data);
 
     const dataHashStr = Array.from(dataHash)
-      .map(byte => byte.toString(16).padStart(2, '0'))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
       .join('');
-    console.log("dataHashStr: ", dataHashStr);
+    console.log('dataHashStr: ', dataHashStr);
     const messageToSign = new TextEncoder().encode(dataHashStr);
 
-    console.log("messageToSign: ", messageToSign);
+    console.log('messageToSign: ', messageToSign);
     const signature = await signMessage(messageToSign);
 
-    return { data: messageToSign, signature, proof, expireAt, signer: publicKey };
+    return {
+      data: messageToSign,
+      signature,
+      proof,
+      expireAt,
+      signer: publicKey,
+    };
   }
 
   const claimAirdrop = async ({
@@ -223,15 +229,15 @@ export const useAirdropClaimOnSolana = () => {
       claimRecordBump,
     );
 
-    const proof = proofInfo.proof.map((x) => Buffer.from(x, 'hex'));
+    const proof = proofInfo.proofs[0].proof.map((x) => Buffer.from(x, 'hex'));
     const proofBuf = Buffer.concat(proof);
 
     const inst = await program.methods
       .claimAirdrop(
         phase,
-        new BN(proofInfo.amount), // amount
+        new BN(proofInfo.proofs[0].amount), // amount
         proofBuf, // proof hash
-        new BN(proofInfo.index), // leaves index
+        new BN(proofInfo.proofs[0].index), // leaves index
       )
       .accounts({
         signer: publicKey,
@@ -406,9 +412,9 @@ export const useAirdropClaimOnSolana = () => {
       .claimAirdropWithReceiver(
         phase,
         signedData.signer,
-        new BN(proofInfo.amount), // amount
+        new BN(proofInfo.proofs[0].amount), // amount
         signedData.proof, // proof hash
-        new BN(proofInfo.index), // leaves index
+        new BN(proofInfo.proofs[0].index), // leaves index
         new BN(signedData.expireAt), // expireAt
         signedData.signature,
         new BN(verifyInstIdx), // verify_ix_index
