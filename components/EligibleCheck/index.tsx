@@ -4,17 +4,17 @@ import {
   getSolanaAirdropProofApi,
 } from '@/api';
 import AddIcon from '@/assets/images/airdrop/add.svg';
-import ArrowDown from '@/assets/images/airdrop/arrow-down.svg';
-import ClockIcon from '@/assets/images/airdrop/clock.svg';
 import EthIcon from '@/assets/images/airdrop/eth.svg';
 import SolIcon from '@/assets/images/airdrop/sol.svg';
 import UnconnectedIcon from '@/assets/images/airdrop/unconnected.svg';
 import WalletIcon from '@/assets/images/layout/wallet.svg';
 import { formatBalanceNumber, shortenAddress } from '@/utils';
 import clsx from 'clsx';
-import { FC, useState } from 'react';
-import { formatEther, isAddress } from 'viem';
+import { FC, useMemo, useState } from 'react';
+import { isAddress } from 'viem';
 import { NetworkTabs } from '../VerifyAddress';
+import ClaimProgress from './claimProgress';
+import { EligibleIconMap } from '@/pages';
 
 type addressInfo = {
   address: string;
@@ -24,18 +24,15 @@ type addressInfo = {
 
 const AddressItem: FC<{
   address: addressInfo;
-  expandable: boolean;
   disconnectAddress: (address: string) => void;
-  defaultOpen: boolean;
   network: string;
-}> = ({ address, expandable, disconnectAddress, network, defaultOpen }) => {
-  const [showDetail, setShowDetail] = useState<boolean>(defaultOpen);
-
+  checked?: boolean;
+}> = ({ address, disconnectAddress, network, checked }) => {
   return (
     <div
       className={clsx(
         'flex flex-col items-stretch p-[1px] rounded-xl transition-all lg:w-[814px]',
-        expandable && showDetail ? 'max-h-[300px]' : 'max-h-[42px]',
+        'max-h-[42px]',
       )}
     >
       <div className="flex items-center justify-between px-3 py-1.5 rounded-xl">
@@ -53,34 +50,37 @@ const AddressItem: FC<{
             {shortenAddress(address.address)}
           </span>
 
-          {expandable && (
-            <span
-              onClick={() => disconnectAddress(address.address)}
-              className="inline-flex w-7 h-7 items-center cursor-pointer justify-center rounded bg-[#FF3666]/20 text-[#FF3666]"
-            >
-              <UnconnectedIcon />
-            </span>
+          <span
+            onClick={() => disconnectAddress(address.address)}
+            className="inline-flex w-7 h-7 items-center cursor-pointer justify-center rounded bg-[#FF3666]/20 text-[#FF3666]"
+          >
+            <UnconnectedIcon />
+          </span>
+
+          {address.proof && (
+            <div className="flex items-center gap-1.5">
+              {Object.entries(address.proof.detail).map(([type, amount]) => {
+                const Icon = EligibleIconMap[type];
+                return (
+                  <span key={type}>
+                    <Icon width={28} height={28} />
+                  </span>
+                );
+              })}
+            </div>
           )}
         </div>
-        {expandable ? (
+        {checked ? (
           address.proof ? (
-            <div
-              onClick={() => setShowDetail(!showDetail)}
-              className="flex items-center justify-between gap-2 h-7 px-2 rounded-md text-[#15CE8C] bg-[#6FFFCB29] cursor-pointer"
-            >
+            <div className="flex items-center justify-between gap-2 h-7 px-2 rounded-md border-[#15CE8C] border cursor-pointer">
               <span className="font-semibold text-sm">
-                Eligible:{' '}
-                {formatBalanceNumber(formatEther(BigInt(address.proof.amount)))}{' '}
-                $HOLO
+                {formatBalanceNumber(address.proof.total)} $HOLO
               </span>
-              <ArrowDown
-                className={clsx('transition-all', showDetail && 'rotate-180')}
-              />
             </div>
           ) : (
             <div className="flex items-center justify-between gap-2 h-7 px-2 rounded-md bg-[#FF3666]/20">
               <span className="font-semibold text-sm text-[#FF3666]">
-                Unqualified
+                Ineligible
               </span>
             </div>
           )
@@ -94,26 +94,6 @@ const AddressItem: FC<{
           </span>
         )}
       </div>
-      {expandable && showDetail && address.proof && (
-        <div className="flex flex-col p-2 gap-2">
-          <span className="font-medium text-sm text-white/50 pl-2">
-            Eligible Types:
-          </span>
-          <div className="">
-            {Object.entries(address.proof.detail).map(([type, amount]) => (
-              <span
-                key={type}
-                className="inline-block py-1.5 px-2 mr-2 mb-2 rounded-md text-white font-semibold text-xs lg:text-sm capitalize"
-              >
-                {type.replaceAll('_', ' ')}{' '}
-                <span className="text-[#15CE8C]">
-                  {formatBalanceNumber(amount)} $HOLO
-                </span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -129,6 +109,23 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
   const limitSolAddress = networkTab == 'SOL' && addressList.length == 1;
 
   const limitEvmAddress = networkTab == 'EVM' && addressList.length == 10;
+
+  const { totalAmount, claimedAmount, unlockedAmount } = useMemo(() => {
+    return addressList.reduce(
+      (pre, cur) => {
+        return {
+          totalAmount: pre.totalAmount + Number(cur.proof?.total || 0),
+          claimedAmount: pre.claimedAmount + Number(0),
+          unlockedAmount: pre.unlockedAmount + Number(cur.proof?.unlocked || 0),
+        };
+      },
+      {
+        totalAmount: 0,
+        claimedAmount: 0,
+        unlockedAmount: 0,
+      },
+    );
+  }, [addressList]);
 
   const handleAdd = () => {
     if (!inputValue || limitEvmAddress || limitSolAddress) return;
@@ -152,21 +149,24 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
       const addr = addressList[index];
 
       try {
-        const request =
+        const res =
           networkTab === 'EVM'
-            ? getBscAirdropProofApi
-            : getSolanaAirdropProofApi;
-        const res = await request(addr.address);
+            ? await getBscAirdropProofApi(addr.address)
+            : await getSolanaAirdropProofApi(addr.address);
 
-        if (res.error) {
-          list.push(addr);
-        } else {
+        console.log(res);
+
+        if (res.total) {
           list.push({ ...addr, proof: res });
+        } else {
+          list.push(addr);
         }
       } catch (error) {
         list.push(addr);
       }
     }
+    console.log(list);
+
     setAddressList(list);
     setChecked(true);
   };
@@ -242,11 +242,10 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
             {addressList.map((address, index) => (
               <AddressItem
                 key={address.address}
-                expandable={checked}
+                checked={checked}
                 address={address}
                 network={networkTab}
                 disconnectAddress={disconnectAddress}
-                defaultOpen={index === 0}
               />
             ))}
           </div>
@@ -261,33 +260,26 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
           </div>
         </div>
 
-        {checked ? (
-          <button
-            onClick={() => {
-              if (addressList.find((addr) => !addr.proof)) {
-                return;
-              }
-              completeCheck();
-            }}
-            className="btn mt-3 w-full lg:max-w-[650px] btn-sm h-10 max-h-10 border-none bg-black text-white font-semibold text-xs"
-          >
-            <ClockIcon />
-            Claim On 01/10/2025 00:00 UTC
-          </button>
-        ) : (
-          <button
-            className="btn mt-3 w-[240px] lg:w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
-            onClick={handleCheck}
-            disabled={addressList.length === 0}
-            style={{
-              background:
-                'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
-            }}
-          >
-            Check Eligibility Now
-          </button>
-        )}
+        <button
+          className="btn mt-3 w-[240px] lg:w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
+          onClick={handleCheck}
+          disabled={addressList.length === 0}
+          style={{
+            background:
+              'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
+          }}
+        >
+          Check Eligibility Now
+        </button>
       </div>
+
+      <ClaimProgress
+        claimed={claimedAmount}
+        unlocked={unlockedAmount}
+        total={totalAmount}
+        onClick={() => {}}
+        isChecked={checked}
+      />
     </div>
   );
 };

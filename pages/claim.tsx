@@ -118,7 +118,12 @@ const Home: FC = () => {
               key={group.title}
               className="flex flex-col items-start gap-2 py-4 pl-5 pr-0 border-b border-white/10"
             >
-              <group.icon className="mb-2" fill="white" />
+              <group.icon
+                width={37}
+                height={36}
+                className="mb-2"
+                fill="white"
+              />
               <span className="font-bold text-white text-base">
                 {group.title}
               </span>

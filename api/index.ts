@@ -44,16 +44,21 @@ export type PageParams = {
 };
 
 export type AirdropProof = {
-  address: string;
-  amount: string;
-  proof: string[];
-  index: number;
+  total: string;
+  unlocked: string;
   detail: {
     launch_agent_token?: string;
     burn_airdrop?: string;
     nft_holder?: string;
     stake_airdrop?: string;
   };
+  proofs: {
+    phase: number;
+    address: string;
+    amount: string;
+    index: number;
+    proof: string[];
+  }[];
   error?: string;
 };
 

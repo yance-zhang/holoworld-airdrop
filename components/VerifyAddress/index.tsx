@@ -10,10 +10,8 @@ import { useAirdropClaimOnBSC } from '@/contract/bnb';
 import { useAirdropClaimOnSolana } from '@/contract/solana';
 import { formatBalanceNumber, shortenAddress } from '@/utils';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import clsx from 'clsx';
 import { FC, useState } from 'react';
-import { formatEther } from 'viem';
 import { useAccount, useDisconnect } from 'wagmi';
 import AddWalletModal from '../AddWalletModal';
 import ClaimModal from '../ClaimModal';
@@ -58,7 +56,7 @@ const AirdropItem: FC<{
             {network}:
           </span>
           <span className="font-semibold text-xs lg:text-sm">
-            {shortenAddress(airdrop.address)}
+            {shortenAddress(airdrop.proofs[0].address)}
           </span>
           <span
             onClick={disconnectWallet}
@@ -74,9 +72,7 @@ const AirdropItem: FC<{
           <span className="font-medium text-xs lg:text-sm">
             <b className="font-bold">
               {formatBalanceNumber(
-                network === 'EVM'
-                  ? formatEther(BigInt(airdrop.amount))
-                  : Number(airdrop.amount) / LAMPORTS_PER_SOL,
+                network === 'EVM' ? airdrop.total : airdrop.total,
               )}{' '}
               <span className="hidden lg:inline-block"> $HOLO</span>
             </b>
@@ -139,8 +135,8 @@ const VerifyAddress: FC<{ completeClaim: (amount: number) => void }> = ({
   const totalAmount = (
     networkTab === 'SOL' ? solAddressList : evmAddressList
   ).reduce((pre, cur) => {
-    return pre + BigInt(cur.amount);
-  }, 0n);
+    return pre + Number(cur.total);
+  }, 0);
 
   const handleAddAddress = (addr: string, network: string) => {
     if (!addr) return;
@@ -162,7 +158,7 @@ const VerifyAddress: FC<{ completeClaim: (amount: number) => void }> = ({
       const res = await multiClaim(phase, evmSignData);
 
       console.log(res);
-      completeClaim(Number(formatEther(totalAmount)));
+      completeClaim(Number(totalAmount));
     } catch (error) {
       console.log(error);
     }
@@ -182,7 +178,7 @@ const VerifyAddress: FC<{ completeClaim: (amount: number) => void }> = ({
         signedData: solSignedData,
       });
       console.log(res);
-      completeClaim(Number(proofInfo.amount) / LAMPORTS_PER_SOL);
+      completeClaim(Number(proofInfo.total));
     } catch (error) {
       console.log(error);
     }
@@ -221,7 +217,7 @@ const VerifyAddress: FC<{ completeClaim: (amount: number) => void }> = ({
           <span className="font-semibold text-sm">Total Eligible Token</span>
           <span className="flex items-end font-[PPMonumentExtended]">
             <span className="font-bold text-[30px]">
-              {formatBalanceNumber(formatEther(totalAmount))}
+              {formatBalanceNumber(totalAmount)}
             </span>
             <span className="font-medium text-xs text-white/80">$HOLO</span>
           </span>
@@ -266,7 +262,7 @@ const VerifyAddress: FC<{ completeClaim: (amount: number) => void }> = ({
             {(networkTab === 'SOL' ? solAddressList : evmAddressList).map(
               (airdrop, index) => (
                 <AirdropItem
-                  key={airdrop.address}
+                  key={index}
                   airdrop={airdrop}
                   defaultOpen={index === 0}
                   network={networkTab}

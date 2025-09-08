@@ -5,7 +5,14 @@ import Eligible5 from '@/assets/images/layout/eligible-5.svg';
 import Eligible6 from '@/assets/images/layout/eligible-6.svg';
 import HoloIcon from '@/assets/images/layout/holo.svg';
 import EligibleCheck from '@/components/EligibleCheck';
-import { FC, useState } from 'react';
+import { FC, SVGProps, useState } from 'react';
+
+export const EligibleIconMap: Record<string, FC<SVGProps<any>>> = {
+  launch_agent_token: Eligible3,
+  burn_airdrop: Eligible2,
+  nft_holder: Eligible6,
+  stake_airdrop: Eligible1,
+};
 
 const eligibleGroups = [
   {
@@ -47,18 +54,6 @@ const Home: FC = () => {
       <div className="relative flex flex-col items-center py-7 gap-8 w-full lg:max-w-[826px]">
         <div className="flex flex-col gap-6 items-center w-full">
           <div className="flex flex-col items-center gap-6 w-full">
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-base font-semibold text-white/80">
-                $HOLO Airdrop Is Live
-              </span>
-              <span
-                className="w-3 h-3 rounded-full"
-                style={{
-                  background:
-                    'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
-                }}
-              ></span>
-            </div>
             <div className="flex flex-col items-center font-[PPMonumentExtended] font-medium w-full tracking-tighter uppercase">
               <span className="text-[32px] lg:text-[72px] tracking-wide">
                 Unlock Your
@@ -78,17 +73,19 @@ const Home: FC = () => {
                 Rewards
               </span>
             </div>
+            <div
+              className="mt-10 rounded-md py-1.5 px-3 text-base font-semibold text-black"
+              style={{
+                background: `linear-gradient(180deg, #08EDDF 0%, #CEED8B 100%)`,
+              }}
+            >
+              $HOLO claim opens 11 September 2025
+            </div>
           </div>
           <div className="w-full py-8">
             <EligibleCheck completeCheck={completeCheck} />
           </div>
         </div>
-
-        <a className="" href="#" target={'_blank'}>
-          <button className="btn btn-sm bg-transparent border-white/60 text-white/60 rounded-full hover:bg-transparent hover:text-[#6FFFCB] hover:border-[#6FFFCB]">
-            Terms and Conditions
-          </button>
-        </a>
       </div>
 
       {/* eligible */}
@@ -103,7 +100,12 @@ const Home: FC = () => {
               key={group.title}
               className="flex flex-col items-start gap-2 py-4 pl-5 pr-0 border-b border-white/10"
             >
-              <group.icon className="mb-2" fill="white" />
+              <group.icon
+                width={37}
+                height={36}
+                className="mb-2"
+                fill="white"
+              />
               <span className="font-bold text-white text-base">
                 {group.title}
               </span>

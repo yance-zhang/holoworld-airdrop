@@ -15,10 +15,9 @@ import {
   shortenAddress,
 } from '@/utils';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import clsx from 'clsx';
 import { FC, useEffect, useRef, useState } from 'react';
-import { formatEther, isAddress } from 'viem';
+import { isAddress } from 'viem';
 import { useAccount, useDisconnect } from 'wagmi';
 import AddWalletModal from '../AddWalletModal';
 import ClaimModal from '../ClaimModal';
@@ -58,10 +57,10 @@ const AirdropItem: FC<{
             {network}:
           </span>
           <span className="font-semibold text-xs lg:text-sm">
-            {shortenAddress(airdrop.address)}
+            {shortenAddress(airdrop.proofs[0].address)}
           </span>
           <span
-            onClick={disconnectWallet}
+            onClick={() => disconnectWallet()}
             className="inline-flex w-7 h-7 items-center justify-center rounded bg-[#FF3666]/20 text-[#FF3666]"
           >
             <UnconnectedIcon />
@@ -74,9 +73,7 @@ const AirdropItem: FC<{
           <span className="font-medium text-xs lg:text-sm">
             <b className="font-bold text-white">
               {formatBalanceNumber(
-                network === 'EVM'
-                  ? formatEther(BigInt(airdrop.amount))
-                  : Number(airdrop.amount) / LAMPORTS_PER_SOL,
+                network === 'EVM' ? airdrop.total : airdrop.total,
               )}{' '}
               <span className="hidden lg:inline-block"> $HOLO</span>
             </b>
@@ -256,8 +253,8 @@ const CheckAndSign: FC<{ completeCheck: () => void }> = ({ completeCheck }) => {
   const totalAmount = (
     networkTab === 'SOL' ? solAddressList : evmAddressList
   ).reduce((pre, cur) => {
-    return pre + BigInt(cur.amount);
-  }, 0n);
+    return pre + Number(cur.total);
+  }, 0);
 
   return (
     <div className="flex flex-col items-center gap-6 w-full">
@@ -370,7 +367,7 @@ const CheckAndSign: FC<{ completeCheck: () => void }> = ({ completeCheck }) => {
             {(networkTab === 'SOL' ? solAddressList : evmAddressList).map(
               (airdrop, index) => (
                 <AirdropItem
-                  key={airdrop.address}
+                  key={index}
                   airdrop={airdrop}
                   defaultOpen={index === 0}
                   network={networkTab}
