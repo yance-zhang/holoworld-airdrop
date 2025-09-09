@@ -17,7 +17,7 @@ const TermsModal: FC<{
         </button>
         <div className="flex flex-col gap-4">
           <div className="text-center text-lg font-bold leading-tight text-yellow">
-            Disclaimer
+            Terms And Conditions
           </div>
 
           <div className="text-sm text-white/80 leading-5 tracking-tight max-w-prose whitespace-pre-wrap break-words max-h-[calc(100vh-243px)] overflow-scroll">

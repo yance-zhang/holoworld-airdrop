@@ -49,6 +49,37 @@ const ClaimProgress: FC<{
 }) => {
   const [termsOpen, setTermsOpen] = useState<boolean>(false);
 
+  const progressList = [
+    {
+      label: 'TGE',
+      value: '30%',
+    },
+    {
+      label: 'Sep 11',
+      value: '12%',
+    },
+    {
+      label: 'Oct 11',
+      value: '12%',
+    },
+    {
+      label: 'Nov 11',
+      value: '12%',
+    },
+    {
+      label: 'Dec 11',
+      value: '12%',
+    },
+    {
+      label: 'Jan 11',
+      value: '12%',
+    },
+    {
+      label: 'Feb 11',
+      value: 'Finial Unlock',
+    },
+  ];
+
   return (
     <div className="flex flex-col items-center gap-6 mt-4">
       {/* claimable */}
@@ -169,7 +200,7 @@ const ClaimProgress: FC<{
         </span>
 
         <div className="flex flex-col items-center gap-7 w-full lg:w-[1125px] p-6 rounded-xl border border-white/30">
-          <span className="flex flex-col lg:flex-row items-center gap-1.5 font-medium text-base">
+          <span className="flex flex-col lg:flex-row items-center gap-1.5 font-medium text-base text-center lg:text-left">
             Rules: Vesting:
             <span className="flex items-center gap-1 text-[#6FFFCB]">
               30% at TGE
@@ -204,7 +235,18 @@ const ClaimProgress: FC<{
             </span>
             Remaining unlocks on the 11th of each month over 6 months.
           </span>
-          {/* <ProgressSvg /> */}
+          <ProgressSvg className="hidden lg:block" />
+          <div className="flex flex-col items-center gap-2 lg:hidden w-[50vw]">
+            {progressList.map((progress) => (
+              <div
+                className="flex items-center justify-between w-full"
+                key={progress.label}
+              >
+                <span className="">{progress.label}</span>
+                <span className="text-[#6FFFCB]">{progress.value}</span>
+              </div>
+            ))}
+          </div>
           <div className="flex flex-col lg:flex-row items-center justify-center gap-4 font-medium text-white/80 text-sm">
             <div className="flex items-center gap-1.5">
               <Days60Icon />
