@@ -56,7 +56,7 @@ const AirdropItem: FC<{
             {network}:
           </span>
           <span className="font-semibold text-xs lg:text-sm">
-            {shortenAddress(airdrop.proofs[0].address)}
+            {shortenAddress(airdrop.address)}
           </span>
           <span
             onClick={disconnectWallet}

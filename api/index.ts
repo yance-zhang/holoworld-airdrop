@@ -44,6 +44,7 @@ export type PageParams = {
 };
 
 export type AirdropProof = {
+  address: string;
   total: string;
   unlocked: string;
   detail: {

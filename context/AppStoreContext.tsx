@@ -81,7 +81,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const onEvmConnected = useCallback(
     async (address: string) => {
       const index = evmAddressList.findIndex(
-        (addr) => addr.proofs[0].address === address,
+        (addr) => addr.address === address,
       );
       if (index > -1 || !evmReceiverAddress) {
         return;
@@ -137,7 +137,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const onSolConnected = useCallback(
     async (address: string) => {
       if (
-        solAddressList.find((addr) => addr.proofs[0].address === address) ||
+        solAddressList.find((addr) => addr.address === address) ||
         solAddressList.length === 1
       ) {
         return;
