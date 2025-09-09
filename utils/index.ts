@@ -42,7 +42,7 @@ export const formatBalanceNumber = (
   precision: number = 2,
 ) => {
   if (!num || !Number(num)) {
-    return '0';
+    return '-';
   }
 
   const baseNumber = Math.pow(10, precision);

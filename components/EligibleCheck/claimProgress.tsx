@@ -59,14 +59,14 @@ const ClaimProgress: FC<{
         </span>
         <div className="flex items-center justify-between">
           <span className="text-[32px] tracking-tighter">
-            {formatBalanceNumber(unlocked, 0) || '-'}
+            {formatBalanceNumber(unlocked, 0)}
           </span>
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-white/60">
               Total allocation
             </span>
             <span className="text-[32px] tracking-tighter">
-              {formatBalanceNumber(total, 0) || '-'}
+              {formatBalanceNumber(total, 0)}
             </span>
             <HoloToken />
           </div>
