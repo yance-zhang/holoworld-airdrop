@@ -32,7 +32,6 @@ const AddressItem: FC<{
     <div
       className={clsx(
         'flex flex-col items-stretch p-[1px] rounded-xl transition-all lg:w-[814px]',
-        'max-h-[42px]',
       )}
     >
       <div className="flex items-center justify-between px-3 py-1.5 rounded-xl">
@@ -76,7 +75,7 @@ const AddressItem: FC<{
         </div>
         {checked ? (
           address.proof ? (
-            <div className="flex items-center justify-between gap-2 h-7 px-2 rounded-md border-[#15CE8C] border cursor-pointer">
+            <div className="flex items-center justify-between gap-2 px-2 rounded-md border-[#15CE8C] border cursor-pointer">
               <span className="font-semibold text-sm">
                 {formatBalanceNumber(address.proof.total)} $HOLO
               </span>
