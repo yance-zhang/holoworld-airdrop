@@ -8,7 +8,7 @@ const TermsModal: FC<{
 }> = ({ open, onClose }) => {
   return createPortal(
     <dialog open={open} className="modal bg-black/50">
-      <div className="modal-box w-[440px] max-w-[440px] p-6 bg-[#121212] rounded-[20px]">
+      <div className="modal-box w-[90vw] lg:w-[440px] max-w-[440px] p-6 bg-[#121212] rounded-[20px]">
         <button
           className="btn btn-xs btn-circle btn-ghost absolute right-6 top-6"
           onClick={onClose}
