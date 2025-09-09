@@ -2,7 +2,8 @@ import Days60Icon from '@/assets/images/airdrop/60days.svg';
 import ProgressSvg from '@/assets/images/airdrop/claim-progress.svg';
 import ReloadIcon from '@/assets/images/airdrop/reload.svg';
 import { formatBalanceNumber } from '@/utils';
-import { FC } from 'react';
+import { FC, useState } from 'react';
+import TermsModal from '../DisclaimerModal/terms';
 
 const HoloToken = () => {
   return (
@@ -46,6 +47,8 @@ const ClaimProgress: FC<{
   isClaim,
   isChecked,
 }) => {
+  const [termsOpen, setTermsOpen] = useState<boolean>(false);
+
   return (
     <div className="flex flex-col items-center gap-6 mt-4">
       {/* claimable */}
@@ -150,11 +153,12 @@ const ClaimProgress: FC<{
       </div>
 
       {/* terms */}
-      <a className="mt-3" href="#" target={'_blank'}>
-        <button className="btn btn-sm bg-transparent border-white/60 text-white/60 rounded-full hover:bg-transparent hover:text-[#6FFFCB] hover:border-[#6FFFCB]">
-          Terms and Conditions
-        </button>
-      </a>
+      <button
+        onClick={() => setTermsOpen(true)}
+        className="btn btn-sm bg-transparent border-white/60 text-white/60 rounded-full hover:bg-transparent hover:text-[#6FFFCB] hover:border-[#6FFFCB]"
+      >
+        Terms and Conditions
+      </button>
 
       {/* remaining */}
       <div className="flex flex-col items-center gap-3 mt-4">
@@ -217,6 +221,8 @@ const ClaimProgress: FC<{
           </div>
         </div>
       </div>
+
+      <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} />
     </div>
   );
 };

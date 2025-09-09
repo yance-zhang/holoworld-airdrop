@@ -22,37 +22,51 @@ const DisclaimerModal: FC<{
           </div>
 
           <div className="text-sm text-white/80 leading-5 tracking-tight max-w-prose whitespace-pre-wrap break-words max-h-[calc(100vh-243px)] overflow-scroll">
-            {`Please read carefully before claiming your $HOLO tokens.
-By continuing, you confirm that you have read, understood, and accepted the following:
+            <h3 className="text-lg text-center">
+              Important Disclaimers and Acknowledgement of Terms of Use for the
+              $HOLO Airdrop Programme
+            </h3>
+            {`Please Read Carefully Before Participating in the $HOLO Token Airdrop Programme. 
 
-1. Terms & Responsibility
-This airdrop is run by Orbit Technologies Limited.
-Your participation is governed by the Airdrop Terms and Conditions and the General Terms.
-If you do not agree, you may not proceed with the claim.
+By participating in the $HOLO Token Airdrop Programme, and proceeding with the claim for the Tokens under the Airdrop Programme, you acknowledge and agree to the following: 
 
-2. Jurisdiction
-Do not participate if you are located in a restricted jurisdiction or are a prohibited person.
-Access may be revoked where distribution is legally restricted.
+Participation in the Airdrop Programme and the claiming of any Tokens pursuant thereto is subject to acceptance of the following, and by continuing and clicking the “Accept” button below, you confirm that you have read, understood, and accepted all the following terms: 
 
-3. Taxes
-Receiving tokens may be taxable in your country.
-You are fully responsible for understanding and fulfilling any tax obligations.
+Applicable Terms and Conditions
 
-4. Risks
-Token value may be volatile or worth nothing.
-Network failures, delays, and security vulnerabilities are possible.
-Allocation displayed on-site is an estimate and may change.
+Your participation in the Airdrop Programme and the claiming of Tokens under the Airdrop Programme is governed by and subject to (i) the $HOLO Airdrop Terms and Conditions (“Airdrop Terms”), which govern eligibility, participation, distribution, and any associated terms for this Airdrop Programme, and (ii) the General Terms of the Holoworld Platform accessible at [docs.holoworld.com/guidelines/terms-of-service] (“General Terns”). You acknowledge and confirm that you have read and understood the Airdrop Terms and the General Terms, and that you agree to be bound by the Airdrop Terms and General Terms in respect of your participation in the Airdrop Programme and the claiming of the Tokens pursuant thereto. 
+For avoidance of doubt, Orbit Technologies Limited (the “Company”) is solely responsible for the Airdrop Programme and for any and all matters relating to the Tokens, any Airdrop Round, Airdrop Terms, the Airdrop Programme, or the Airdrop Site. 
+Capitalised terms herein shall have the meaning given to them in the Airdrop Terms, unless the context requires otherwise. 
 
-5. Transferability & Liquidity
-Tokens may have lockups or vesting.
-Liquidity and tradability are not guaranteed.
+Jurisdictional Limitation
 
-6. Wallet Security
-You are solely responsible for your wallet, private keys, and device security.
-We cannot recover lost or compromised assets.
+The Airdrop Programme is subject to applicable laws and regulations and may not be available to residents of certain jurisdictions. By claiming the $HOLO tokens (“Tokens”), you warrant that (i) you are in compliance with all applicable laws regarding digital assets; (ii) you are not residing, domiciled or incorporated in any of the jurisdictions prohibited in the Airdrop Terms; and (iii) agree not to participate if such participation is restricted or prohibited in your jurisdiction. We reserve the right to refuse or revoke access to the Airdrop Programme in any location where distribution is restricted. 
 
-7. Data Usage
-We may collect and process data (e.g., wallet addresses, ecosystem activity) per our Privacy Policy to verify eligibility and operate the programme.`}
+Tax Obligation
+
+Your receipt of tokens through the Airdrop Programme may be considered a taxable event under the laws of your jurisdiction and you may be required to report the receipt of such tokens. It is your responsibility to understand and comply with any tax obligations that may arise from receiving or holding tokens through this Airdrop Programme. We will not be responsible for advising on or fulfilling your tax obligations. 
+
+Risks Warning
+
+In addition to the nonexclusive list of risk disclaimers set out in our Airdrop Terms, you acknowledge and accept the market and security risks associated with your participation in our Airdrop Programme. The value of the Tokens distributed via the Airdrop Programme may be highly volatile and subject to significant fluctuations in response to market conditions, and your claiming of tokens through the Airdrop Programme may involve risks of network failures, delays, and security vulnerabilities. 
+
+Information relating to the Airdrop 
+
+You may be able to check your eligibility and other information relating to your tokens allocation (where applicable) by connecting your eligible Digital Wallet or logging into your User Account on the Airdrop Site. Any results or information provided through such a process (the “Airdrop Information”) is provided for your convenience only, and any results or information provided therein, including information relating to your eligibility and/or Token allocation, is an estimate only, and shall not be binding on the Company. Any Airdrop Information presented to you via the Airdrop Site is not intended to, and shall not, create any expectation on you in respect of your eligibility to receive any Tokens under the Airdrop Programme. No representation or warranty, express or implied, is made as to the fairness, accuracy, timeliness, correctness or completeness of any Airdrop Information provided on the Airdrop Site, and no reliance should be placed on it.  The Airdrop Information is provided solely to assist in assessing your preliminary eligibility for the Airdrop Programme for your convenience only. Results displayed as part of the Airdrop Information do not guarantee final eligibility, participation, or any right to receive tokens or rewards (or the amount thereof). We reserve the right to disqualify participants who are suspected of fraudulent or illegal activities, bypassing eligibility checks, or failing to meet any eligibility criteria. We reserve the right to change our decisions (and accordingly, any Airdrop Information displayed on the Airdrop Site) on or prior to the occurrence of the Airdrop. The final number of tokens that you may receive (if any) may differ from the results displayed as part of the Airdrop Information. 
+Any statements, announcements or information we may have previously made relating to the Airdrop Programme, any Airdrop Round or any tokens (whether via the Airdrop Site or anywhere else) are not binding and do not constitute a representation or guarantee. We are not liable for any reliance on such past communications. Any information or communication provided by the Company (whether via the Airdrop Site or otherwise) relating to any token allocation shall not be deemed as, nor shall it create, any expectation, promise or guarantee of any allocation to any tokens, or any other form of incentives, benefits or rewards.
+
+Transferability and Liquidity Limitations
+
+The Tokens distributed in the Airdrop Programme may not be immediately transferable, and we make no guarantees regarding their tradability or liquidity on secondary markets. Transferability may be subject to future updates, regulatory limitations, network changes, or third-party restrictions. Any future ability to transfer, sell, or trade these Tokens is not assured and may depend on factors outside of our control. 
+
+User Responsibility and Security
+
+You are solely responsible for maintaining the security of your private keys, wallet credentials, and device. We will not be liable for any losses resulting from any unauthorised access, loss of keys, or compromised wallet security. 
+
+Privacy and Data Usage
+
+We may collect certain information relating to you when you participate in the Airdrop Programme or claim your Tokens, such as your wallet addresses or your past interactions with the Holoworld project and ecosystem, and the range of services and products that we provide, to assess your eligibility for the Token airdrop. For more information on how your data may be collected, used, disclosed and/or processed, please refer to our Privacy Policy accessible at [docs.holoworld.com/guidelines/privacy-policy]. You hereby consent to the collection, usage, disclosure and processing of information relating to you, including without limitation, your personal data, in accordance with our Privacy Policy. 
+If you do not accept any of these terms, you may not proceed with the claim. `}
           </div>
 
           <div className="grid grid-cols-3 gap-2 mt-3">
