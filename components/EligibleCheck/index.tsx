@@ -62,7 +62,11 @@ const AddressItem: FC<{
               {Object.entries(address.proof.detail).map(([type, amount]) => {
                 const Icon = EligibleIconMap[type];
                 return (
-                  <span key={type}>
+                  <span
+                    className="tooltip"
+                    data-tip={type.replaceAll('_', ' ').toLocaleUpperCase()}
+                    key={type}
+                  >
                     <Icon width={28} height={28} />
                   </span>
                 );

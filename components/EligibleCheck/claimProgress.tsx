@@ -162,16 +162,14 @@ const ClaimProgress: FC<{
 
       {/* remaining */}
       <div className="flex flex-col items-center gap-3 mt-4">
-        <span className="flex items-center gap-3 h-14 text-base text-white/60">
+        <span className="flex flex-col lg:flex-row items-center gap-3 min-h-14 text-base text-white/60">
           Total airdrop amount
-          <span className="text-[32px] text-white">
-            {formatBalanceNumber(total, 0)}
-          </span>
+          <span className="text-[32px] text-white">204,800,000</span>
           <span className="text-[32px] text-[#6FFFCB]">$HOLO</span>
         </span>
 
         <div className="flex flex-col items-center gap-7 w-full lg:w-[1125px] p-6 rounded-xl border border-white/30">
-          <span className="flex items-center gap-1.5 font-medium text-base">
+          <span className="flex flex-col lg:flex-row items-center gap-1.5 font-medium text-base">
             Rules: Vesting:
             <span className="flex items-center gap-1 text-[#6FFFCB]">
               30% at TGE
@@ -206,8 +204,8 @@ const ClaimProgress: FC<{
             </span>
             Remaining unlocks on the 11th of each month over 6 months.
           </span>
-          <ProgressSvg />
-          <div className="flex items-center justify-center gap-4 font-medium text-white/80 text-sm">
+          {/* <ProgressSvg /> */}
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-4 font-medium text-white/80 text-sm">
             <div className="flex items-center gap-1.5">
               <Days60Icon />
               <span className="">Claim window: 60 days</span>

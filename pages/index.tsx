@@ -12,6 +12,7 @@ export const EligibleIconMap: Record<string, FC<SVGProps<any>>> = {
   burn_airdrop: Eligible2,
   nft_holder: Eligible6,
   stake_airdrop: Eligible1,
+  '3d_pudgy_penguin': Eligible5,
 };
 
 const eligibleGroups = [
@@ -79,7 +80,7 @@ const Home: FC = () => {
                 background: `linear-gradient(180deg, #08EDDF 0%, #CEED8B 100%)`,
               }}
             >
-              $HOLO claim opens 11 September 2025
+              Claim start at September 11, 2025 11:00 am UTC
             </div>
           </div>
           <div className="w-full py-8">
