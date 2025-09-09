@@ -55,27 +55,27 @@ const ClaimProgress: FC<{
       value: '30%',
     },
     {
-      label: 'Sep 11',
-      value: '12%',
-    },
-    {
       label: 'Oct 11',
-      value: '12%',
+      value: '11.6%',
     },
     {
       label: 'Nov 11',
-      value: '12%',
+      value: '11.6%',
     },
     {
       label: 'Dec 11',
-      value: '12%',
+      value: '11.6%',
     },
     {
       label: 'Jan 11',
-      value: '12%',
+      value: '11.6%',
     },
     {
       label: 'Feb 11',
+      value: '11.6%',
+    },
+    {
+      label: 'Mar 11',
       value: 'Finial Unlock',
     },
   ];
