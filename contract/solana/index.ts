@@ -18,50 +18,22 @@ import {
   VersionedTransaction,
 } from '@solana/web3.js';
 import IDL from './holo_token_airdrop_solana.json';
+import { useToast } from '@/context/ToastContext';
 
 export const PROGRAMID_DEVNET = new PublicKey(
   'CFgjprV4jBBPD1yKjfADGE9nbtR3HhZ9fWCeYTHa4SbS',
 );
 
 export const airdropTokenMint = new PublicKey(
-  '4NqFVbozeU6a4kCoc79kWS4H5ZW4VgtuSDjKx9vqFQUg',
+  '44jipRpRo1KfN3PqPAC1srL3nkRVjgxpGQr3pfWtbaXK',
 );
 
 export const lutAddress = new PublicKey(
-  '45sKfB5HAZcSZKWptrarBDT2YBGRSAURRCACHzMwegsj',
+  'F6yM2QhNqR2DH6gVZ6XoWVaNc3WSHuYpSLPwpbiWCJq1',
 );
 
 export const MERKLE_ROOT_SEEDS = Buffer.from('merkle_root');
 export const CLAIM_RECORD_SEEDS = Buffer.from('claim_record');
-const solanaPhase = new BN(5);
-
-// Type definitions based on IDL
-interface ClaimRecord {
-  bump: number;
-  phase: number;
-  user: PublicKey;
-  amount: BN;
-  token: PublicKey;
-  receiver: PublicKey;
-}
-
-interface ClaimAirdropEvent {
-  user: PublicKey;
-  token: PublicKey;
-  amount: BN;
-  receiver: PublicKey;
-}
-
-interface merkleRoot {
-  merkle_root: string;
-  leaves: {
-    [key: string]: {
-      amount: string;
-      proof: string[];
-      index: number;
-    };
-  };
-}
 
 export function newTransactionWithComputeUnitPriceAndLimit(): Transaction {
   return new Transaction().add(
@@ -86,6 +58,7 @@ export const useAirdropClaimOnSolana = () => {
   const { publicKey, sendTransaction, signMessage, signTransaction } =
     useWallet();
   const { connection } = useConnection();
+  const { addToast } = useToast();
 
   async function sha256(input: Uint8Array): Promise<Uint8Array> {
     const hash = await crypto.subtle.digest('SHA-256', input as any);
@@ -103,13 +76,6 @@ export const useAirdropClaimOnSolana = () => {
     if (!receiver || !proof || !publicKey) {
       throw new Error('No receiver or proof or signer publicKey');
     }
-
-    // let data = Buffer.alloc(8);
-    // data.writeBigInt64LE(BigInt(expireAt), 0);
-
-    // data = Buffer.concat([await sha256(proof), receiver.toBytes(), data]);
-
-    // const dataHash = await sha256(data);
 
     const expireAtBytes = new Uint8Array(8);
     const dataView = new DataView(expireAtBytes.buffer);
@@ -144,172 +110,172 @@ export const useAirdropClaimOnSolana = () => {
     };
   }
 
-  const claimAirdrop = async ({
-    receiverAddress,
-    proofInfo,
-  }: {
-    receiverAddress: string;
-    proofInfo: AirdropProof;
-  }) => {
-    if (!publicKey) {
-      return;
-    }
-    const program = new Program(IDL as Idl, {
-      connection,
-    });
+  // const claimAirdrop = async ({
+  //   receiverAddress,
+  //   proofInfo,
+  // }: {
+  //   receiverAddress: string;
+  //   proofInfo: AirdropProof;
+  // }) => {
+  //   if (!publicKey) {
+  //     return;
+  //   }
+  //   const program = new Program(IDL as Idl, {
+  //     connection,
+  //   });
 
-    const phase = solanaPhase;
-    const receiver = new PublicKey(receiverAddress);
+  //   const phase = solanaPhase;
+  //   const receiver = new PublicKey(receiverAddress);
 
-    const [merkleRoot, merkleRootBump] = PublicKey.findProgramAddressSync(
-      [
-        MERKLE_ROOT_SEEDS,
-        phase.toArrayLike(Buffer, 'le', 1),
-        airdropTokenMint.toBuffer(),
-      ],
-      program.programId,
-    );
-    console.log(
-      'merkle_root(init), bump: ',
-      merkleRoot.toBase58(),
-      merkleRootBump,
-    );
+  //   const [merkleRoot, merkleRootBump] = PublicKey.findProgramAddressSync(
+  //     [
+  //       MERKLE_ROOT_SEEDS,
+  //       phase.toArrayLike(Buffer, 'le', 1),
+  //       airdropTokenMint.toBuffer(),
+  //     ],
+  //     program.programId,
+  //   );
+  //   console.log(
+  //     'merkle_root(init), bump: ',
+  //     merkleRoot.toBase58(),
+  //     merkleRootBump,
+  //   );
 
-    const merkleRootInfo = await (program.account as any).merkleRoot.fetch(
-      merkleRoot,
-    );
-    console.log('merkleRootInfo: ', JSON.stringify(merkleRootInfo));
+  //   const merkleRootInfo = await (program.account as any).merkleRoot.fetch(
+  //     merkleRoot,
+  //   );
+  //   console.log('merkleRootInfo: ', JSON.stringify(merkleRootInfo));
 
-    console.log(
-      'merkleRoot: ',
-      Buffer.from(merkleRootInfo.merkleRoot).toString('hex'),
-    );
+  //   console.log(
+  //     'merkleRoot: ',
+  //     Buffer.from(merkleRootInfo.merkleRoot).toString('hex'),
+  //   );
 
-    const merkleTokenVault = getAssociatedTokenAddressSync(
-      airdropTokenMint,
-      merkleRoot,
-      true,
-      TOKEN_PROGRAM_ID,
-    );
-    console.log('merkleTokenVault: ', merkleTokenVault.toBase58());
+  //   const merkleTokenVault = getAssociatedTokenAddressSync(
+  //     airdropTokenMint,
+  //     merkleRoot,
+  //     true,
+  //     TOKEN_PROGRAM_ID,
+  //   );
+  //   console.log('merkleTokenVault: ', merkleTokenVault.toBase58());
 
-    const userTokenVault = getAssociatedTokenAddressSync(
-      airdropTokenMint,
-      receiver,
-      true,
-      TOKEN_PROGRAM_ID,
-    );
-    console.log('userTokenVault: ', userTokenVault.toBase58());
+  //   const userTokenVault = getAssociatedTokenAddressSync(
+  //     airdropTokenMint,
+  //     receiver,
+  //     true,
+  //     TOKEN_PROGRAM_ID,
+  //   );
+  //   console.log('userTokenVault: ', userTokenVault.toBase58());
 
-    console.log('正在从链上获取地址查找表账户: ', lutAddress.toBase58());
-    const lookupTableAccountResponse =
-      await connection.getAddressLookupTable(lutAddress);
+  //   console.log('正在从链上获取地址查找表账户: ', lutAddress.toBase58());
+  //   const lookupTableAccountResponse =
+  //     await connection.getAddressLookupTable(lutAddress);
 
-    const lookupTableAccount: AddressLookupTableAccount | null =
-      lookupTableAccountResponse.value;
+  //   const lookupTableAccount: AddressLookupTableAccount | null =
+  //     lookupTableAccountResponse.value;
 
-    if (!lookupTableAccount) {
-      throw new Error(`无法在链上找到地址查找表: ${lutAddress.toBase58()}`);
-    }
+  //   if (!lookupTableAccount) {
+  //     throw new Error(`无法在链上找到地址查找表: ${lutAddress.toBase58()}`);
+  //   }
 
-    let tx = newTransactionWithComputeUnitPriceAndLimit();
+  //   let tx = newTransactionWithComputeUnitPriceAndLimit();
 
-    const [claimRecord, claimRecordBump] = PublicKey.findProgramAddressSync(
-      [
-        CLAIM_RECORD_SEEDS,
-        phase.toArrayLike(Buffer, 'le', 1),
-        publicKey.toBuffer(),
-        airdropTokenMint.toBuffer(),
-      ],
-      program.programId,
-    );
-    console.log(
-      'claim record(init), bump: ',
-      claimRecord.toBase58(),
-      claimRecordBump,
-    );
+  //   const [claimRecord, claimRecordBump] = PublicKey.findProgramAddressSync(
+  //     [
+  //       CLAIM_RECORD_SEEDS,
+  //       phase.toArrayLike(Buffer, 'le', 1),
+  //       publicKey.toBuffer(),
+  //       airdropTokenMint.toBuffer(),
+  //     ],
+  //     program.programId,
+  //   );
+  //   console.log(
+  //     'claim record(init), bump: ',
+  //     claimRecord.toBase58(),
+  //     claimRecordBump,
+  //   );
 
-    const proof = proofInfo.proofs[0].proof.map((x) => Buffer.from(x, 'hex'));
-    const proofBuf = Buffer.concat(proof);
+  //   const proof = proofInfo.proofs[0].proof.map((x) => Buffer.from(x, 'hex'));
+  //   const proofBuf = Buffer.concat(proof);
 
-    const inst = await program.methods
-      .claimAirdrop(
-        phase,
-        new BN(proofInfo.proofs[0].amount), // amount
-        proofBuf, // proof hash
-        new BN(proofInfo.proofs[0].index), // leaves index
-      )
-      .accounts({
-        signer: publicKey,
-        airdropTokenMint: airdropTokenMint,
-        receiver: receiver,
-        merkleRoot: merkleRoot,
-        merkleTokenVault: merkleTokenVault,
-        userTokenVault: userTokenVault,
-        claimRecord: claimRecord,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .instruction();
-    tx.add(inst);
+  //   const inst = await program.methods
+  //     .claimAirdrop(
+  //       phase,
+  //       new BN(proofInfo.proofs[0].amount), // amount
+  //       proofBuf, // proof hash
+  //       // new BN(proofInfo.proofs[0].index), // leaves index
+  //     )
+  //     .accounts({
+  //       signer: publicKey,
+  //       airdropTokenMint: airdropTokenMint,
+  //       receiver: receiver,
+  //       merkleRoot: merkleRoot,
+  //       merkleTokenVault: merkleTokenVault,
+  //       userTokenVault: userTokenVault,
+  //       claimRecord: claimRecord,
+  //       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+  //       tokenProgram: TOKEN_PROGRAM_ID,
+  //       systemProgram: SystemProgram.programId,
+  //     })
+  //     .instruction();
+  //   tx.add(inst);
 
-    const { blockhash } = await connection.getLatestBlockhash();
+  //   const { blockhash } = await connection.getLatestBlockhash();
 
-    console.log(`blockhash: ${blockhash}`);
+  //   console.log(`blockhash: ${blockhash}`);
 
-    const messageV0 = new TransactionMessage({
-      payerKey: publicKey,
-      recentBlockhash: blockhash,
-      instructions: tx.instructions,
-    }).compileToV0Message([lookupTableAccount]);
+  //   const messageV0 = new TransactionMessage({
+  //     payerKey: publicKey,
+  //     recentBlockhash: blockhash,
+  //     instructions: tx.instructions,
+  //   }).compileToV0Message([lookupTableAccount]);
 
-    const versionedTx = new VersionedTransaction(messageV0);
-    const serializedTx = versionedTx.serialize();
-    const txSize = serializedTx.length;
+  //   const versionedTx = new VersionedTransaction(messageV0);
+  //   const serializedTx = versionedTx.serialize();
+  //   const txSize = serializedTx.length;
 
-    console.log(`✅ 这笔版本化交易的大小是: ${txSize} 字节`);
+  //   console.log(`✅ 这笔版本化交易的大小是: ${txSize} 字节`);
 
-    let signature = '';
+  //   let signature = '';
 
-    try {
-      // Sign transaction with wallet
-      if (!signTransaction) {
-        throw new Error('Wallet does not support transaction signing');
-      }
-      const signedTx = await signTransaction(versionedTx);
+  //   try {
+  //     // Sign transaction with wallet
+  //     if (!signTransaction) {
+  //       throw new Error('Wallet does not support transaction signing');
+  //     }
+  //     const signedTx = await signTransaction(versionedTx);
 
-      // Send transaction
-      signature = await connection.sendRawTransaction(signedTx.serialize());
-      console.log(`Transaction sent: ${signature}`);
+  //     // Send transaction
+  //     signature = await connection.sendRawTransaction(signedTx.serialize());
+  //     console.log(`Transaction sent: ${signature}`);
 
-      // Confirm transaction
-      const confirmation = await connection.confirmTransaction(
-        signature,
-        'confirmed',
-      );
-      console.log('Transaction confirmed:', confirmation);
+  //     // Confirm transaction
+  //     const confirmation = await connection.confirmTransaction(
+  //       signature,
+  //       'confirmed',
+  //     );
+  //     console.log('Transaction confirmed:', confirmation);
 
-      return signature;
-    } catch (error: any) {
-      console.error(error);
-      // Handle SendTransactionError and fetch logs
-      if (error.name === 'SendTransactionError') {
-        const txError = error as TransactionError;
-        const logs = await connection.getTransaction(signature, {
-          commitment: 'confirmed',
-          maxSupportedTransactionVersion: 0,
-        });
-        console.error(
-          'Detailed transaction logs:',
-          logs?.meta?.logMessages || [],
-        );
-        throw new Error(
-          `SendTransactionError: ${error.message}, Logs: ${JSON.stringify(logs?.meta?.logMessages || [])}`,
-        );
-      }
-    }
-  };
+  //     return signature;
+  //   } catch (error: any) {
+  //     console.error(error);
+  //     // Handle SendTransactionError and fetch logs
+  //     if (error.name === 'SendTransactionError') {
+  //       const txError = error as TransactionError;
+  //       const logs = await connection.getTransaction(signature, {
+  //         commitment: 'confirmed',
+  //         maxSupportedTransactionVersion: 0,
+  //       });
+  //       console.error(
+  //         'Detailed transaction logs:',
+  //         logs?.meta?.logMessages || [],
+  //       );
+  //       throw new Error(
+  //         `SendTransactionError: ${error.message}, Logs: ${JSON.stringify(logs?.meta?.logMessages || [])}`,
+  //       );
+  //     }
+  //   }
+  // };
 
   const claimAirdropWithReceiver = async ({
     proofInfo,
@@ -321,7 +287,7 @@ export const useAirdropClaimOnSolana = () => {
     if (!publicKey) {
       return;
     }
-    const phase = solanaPhase;
+    const phase = new BN(proofInfo.proofs[0].phase);
 
     const program = new Program(IDL as Idl, {
       connection,
@@ -397,6 +363,22 @@ export const useAirdropClaimOnSolana = () => {
       claimRecordBump,
     );
 
+    // use claimRecord to check if already claimed
+    const accountInfo = await connection.getAccountInfo(
+      new PublicKey(claimRecord),
+    );
+    if (accountInfo === null) {
+      console.log('Account does not exist');
+    } else {
+      console.log(
+        'Account Balance:',
+        accountInfo.lamports / 1_000_000_000,
+        'SOL',
+      );
+      addToast('Account Already claimed', 'warning');
+      return;
+    }
+
     const verifySignInst = web3.Ed25519Program.createInstructionWithPublicKey({
       publicKey: signedData.signer.toBytes(),
       message: signedData.data,
@@ -414,7 +396,7 @@ export const useAirdropClaimOnSolana = () => {
         signedData.signer,
         new BN(proofInfo.proofs[0].amount), // amount
         signedData.proof, // proof hash
-        new BN(proofInfo.proofs[0].index), // leaves index
+        // new BN(proofInfo.proofs[0].index), // leaves index
         new BN(signedData.expireAt), // expireAt
         signedData.signature,
         new BN(verifyInstIdx), // verify_ix_index
@@ -492,7 +474,7 @@ export const useAirdropClaimOnSolana = () => {
   };
 
   return {
-    claimAirdrop,
+    // claimAirdrop,
     claimAirdropWithReceiver,
     signClaimReward,
   };

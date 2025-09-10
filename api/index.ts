@@ -63,13 +63,13 @@ export type AirdropProof = {
   error?: string;
 };
 
-export const getBscAirdropProofApi = async (address: string) => {
-  return axios.get<AirdropProof>(`/merkle_proof/bsc/${address}`);
-};
+// export const getBscAirdropProofApi = async (address: string) => {
+//   return axios.get<AirdropProof>(`/merkle_proof/bsc/${address}`);
+// };
 
-export const getSolanaAirdropProofApi = async (address: string) => {
-  return axios.get<AirdropProof>(`/merkle_proof/solana/${address}`);
-};
+// export const getSolanaAirdropProofApi = async (address: string) => {
+//   return axios.get<AirdropProof>(`/merkle_proof/solana/${address}`);
+// };
 
 export type AuthTextTemplate = {
   tip_info: string;

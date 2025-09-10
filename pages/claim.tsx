@@ -8,7 +8,7 @@ import CheckAndSign from '@/components/EligibleCheck/checkAndSign';
 import Stake from '@/components/Stake';
 import VerifyAddress from '@/components/VerifyAddress';
 import Head from 'next/head';
-import { FC, useEffect, useState } from 'react';
+import { FC, useState } from 'react';
 
 const eligibleGroups = [
   {
@@ -52,12 +52,6 @@ const Home: FC = () => {
     setState('stake');
     setClaimAmount(amount);
   };
-
-  useEffect(() => {
-    location.href = '/';
-  }, []);
-
-  return null;
 
   return (
     <>

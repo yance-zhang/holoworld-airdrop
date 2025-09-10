@@ -2,8 +2,9 @@
 
 import {
   AirdropProof,
-  getBscAirdropProofApi,
-  getSolanaAirdropProofApi,
+  getAuthTextTemplate,
+  getBscEligibilityProof,
+  getSolanaEligibilityProof,
 } from '@/api';
 import {
   evmContractAddress,
@@ -17,9 +18,10 @@ import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { PublicKey } from '@solana/web3.js';
 import React, { createContext, useCallback, useContext, useState } from 'react';
 import { Address } from 'viem';
-import { useChainId, useDisconnect } from 'wagmi';
+import { useChainId, useDisconnect, useSignMessage } from 'wagmi';
 import ConnectWallet from '../components/ConnectWallet';
 import { useToast } from './ToastContext';
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 
 interface AppStoreContextType {
   evmReceiverAddress: string;
@@ -73,6 +75,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const [evmOpen, setEvmOpen] = useState<boolean>(false);
   const [evmAddressList, setEvmAddressList] = useState<AirdropProof[]>([]);
   const [evmSignData, setEvmSignData] = useState<SignData[]>([]);
+  const { signMessageAsync } = useSignMessage();
 
   const openEvm = () => setEvmOpen(true);
 
@@ -86,7 +89,13 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       if (index > -1 || !evmReceiverAddress) {
         return;
       }
-      const res = await getBscAirdropProofApi(address);
+
+      const tipInfoRes = await getAuthTextTemplate(address);
+
+      const { tip_info } = tipInfoRes;
+      const signature = await signMessageAsync({ message: tip_info });
+
+      const res = await getBscEligibilityProof(address, signature);
 
       if (res.error) {
         addToast(`Account: ${shortenAddress(address)} is not eligible.`);
@@ -144,7 +153,18 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       try {
-        const res = await getSolanaAirdropProofApi(address);
+        const infoRes = await getAuthTextTemplate(address);
+        if (!infoRes) {
+          console.log('error when getting template');
+          return; // Add return here
+        }
+
+        const message = infoRes.tip_info;
+
+        const signature = await signMessage!(Buffer.from(message));
+        const signatureString = bs58.encode(signature);
+
+        const res = await getSolanaEligibilityProof(address, signatureString);
         setSolAddressList([...solAddressList, res]);
 
         if (!solReceiverAddress) {

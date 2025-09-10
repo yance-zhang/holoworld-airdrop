@@ -1,4 +1,8 @@
-import { AirdropProof, getSolanaAirdropProofApi } from '@/api';
+import {
+  AirdropProof,
+  getAuthTextTemplate,
+  getSolanaEligibilityProof,
+} from '@/api';
 import AddIcon from '@/assets/images/airdrop/add.svg';
 import ArrowDown from '@/assets/images/airdrop/arrow-down.svg';
 import EthIcon from '@/assets/images/airdrop/eth.svg';
@@ -16,6 +20,7 @@ import { useAccount, useDisconnect } from 'wagmi';
 import AddWalletModal from '../AddWalletModal';
 import ClaimModal from '../ClaimModal';
 import DisclaimerModal from '../DisclaimerModal';
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 
 export const NetworkTabs = [
   { name: 'SOL', icon: SolIcon },
@@ -122,7 +127,7 @@ const VerifyAddress: FC<{ completeClaim: (amount: number) => void }> = ({
   const { multiClaim } = useAirdropClaimOnBSC();
   const { claimAirdropWithReceiver } = useAirdropClaimOnSolana();
   const { address } = useAccount();
-  const { publicKey } = useWallet();
+  const { publicKey, signMessage } = useWallet();
   const [addWalletOpen, setAddWalletOpen] = useState<boolean>(false);
   const [claimOpen, setClaimOpen] = useState<boolean>(false);
   const [disclaimerOpen, setDisclaimerOpen] = useState<boolean>(false);
@@ -169,16 +174,11 @@ const VerifyAddress: FC<{ completeClaim: (amount: number) => void }> = ({
       return;
     }
     try {
-      const proofInfo = await getSolanaAirdropProofApi(
-        solSignedData.signer.toBase58(),
-      );
-
       const res = await claimAirdropWithReceiver({
-        proofInfo,
+        proofInfo: solAddressList[0],
         signedData: solSignedData,
       });
       console.log(res);
-      completeClaim(Number(proofInfo.total));
     } catch (error) {
       console.log(error);
     }

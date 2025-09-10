@@ -1,4 +1,4 @@
-import { AirdropProof, getSolanaAirdropProofApi } from '@/api';
+import { AirdropProof } from '@/api';
 import AddIcon from '@/assets/images/airdrop/add.svg';
 import ArrowDown from '@/assets/images/airdrop/arrow-down.svg';
 import EthIcon from '@/assets/images/airdrop/eth.svg';
@@ -127,7 +127,7 @@ const CheckAndSign: FC<{ completeCheck: () => void }> = ({ completeCheck }) => {
   const { multiClaim } = useAirdropClaimOnBSC();
   const { claimAirdropWithReceiver } = useAirdropClaimOnSolana();
   const { address } = useAccount();
-  const { publicKey, disconnect: disconnectSolana } = useWallet();
+  const { publicKey, disconnect: disconnectSolana, signMessage } = useWallet();
   const disconnectEvm = useDisconnect();
   const [networkTab, setNetworkTab] = useState(NetworkTabs[0].name);
   const [addWalletOpen, setAddWalletOpen] = useState<boolean>(false);
@@ -146,40 +146,6 @@ const CheckAndSign: FC<{ completeCheck: () => void }> = ({ completeCheck }) => {
     // } else if (network === 'BNB') {
     //   setevmAddressList([...evmAddressList, addr]);
     // }
-  };
-
-  const claimOnBsc = async () => {
-    if (evmSignData.length === 0) {
-      return;
-    }
-    try {
-      const phase = 2;
-      const res = await multiClaim(phase, evmSignData);
-
-      console.log(res);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const claimOnSolana = async () => {
-    if (!publicKey || !solSignedData) {
-      return;
-    }
-    try {
-      const proofInfo = await getSolanaAirdropProofApi(
-        solSignedData.signer.toBase58(),
-      );
-      console.log(proofInfo);
-
-      const res = await claimAirdropWithReceiver({
-        proofInfo,
-        signedData: solSignedData,
-      });
-      console.log(res);
-    } catch (error) {
-      console.log(error);
-    }
   };
 
   const handleClaim = () => {

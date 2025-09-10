@@ -1,28 +1,24 @@
 import {
   AirdropProof,
   getAuthTextTemplate,
-  getBscAirdropProofApi,
   getBscEligibilityProof,
-  getSolanaAirdropProofApi,
   getSolanaEligibilityProof,
 } from '@/api';
 import EthIcon from '@/assets/images/airdrop/eth.svg';
 import SolIcon from '@/assets/images/airdrop/sol.svg';
 import UnconnectedIcon from '@/assets/images/airdrop/unconnected.svg';
+import WalletIcon from '@/assets/images/layout/wallet.svg';
+import { useAppStore } from '@/context/AppStoreContext';
+import { useToast } from '@/context/ToastContext';
+import { EligibleIconMap } from '@/pages';
 import { formatBalanceNumber, shortenAddress } from '@/utils';
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
+import { useWallet } from '@solana/wallet-adapter-react';
 import clsx from 'clsx';
 import { FC, useEffect, useMemo, useState } from 'react';
-import { isAddress } from 'viem';
+import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
 import { NetworkTabs } from '../VerifyAddress';
 import ClaimProgress from './claimProgress';
-import { EligibleIconMap } from '@/pages';
-import { useAppStore } from '@/context/AppStoreContext';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
-import { PublicKey } from '@solana/web3.js';
-import WalletIcon from '@/assets/images/layout/wallet.svg';
-import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
-import { useToast } from '@/context/ToastContext';
 
 type addressInfo = {
   address: string;

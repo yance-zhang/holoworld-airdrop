@@ -16,6 +16,9 @@ import {
 } from 'wagmi';
 import airdropAbi from './holo_airdrop.abi.json';
 
+const contractAddress = '0x6A1E5F3955c095382c224B75859331f683E2d1ef';
+export const evmContractAddress = contractAddress;
+
 export interface SignData {
   user: Address;
   amount: bigint;
@@ -120,9 +123,6 @@ export function useGenerateAirdropSignature() {
     error,
   };
 }
-
-const contractAddress = '0x2AF59c0dACfEF4dE005bE47c564E3E01d4044745';
-export const evmContractAddress = contractAddress;
 
 export function useAirdropClaimOnBSC() {
   const publicClient = usePublicClient();
