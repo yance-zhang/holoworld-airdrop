@@ -106,7 +106,7 @@ const ClaimProgress: FC<{
           <div
             className="absolute min-w-2 h-2 rounded-full opacity-40"
             style={{
-              width: `${(unlocked * 100) / total}%`,
+              // width: `${(unlocked * 100) / total}%`,
               background: `linear-gradient(180deg, #08EDDF -450%, #CEED8B 600%)`,
             }}
           ></div>
@@ -114,7 +114,7 @@ const ClaimProgress: FC<{
           <div
             className="absolute left-0 top-0 min-w-2 h-2 rounded-full"
             style={{
-              width: `${(claimed * 100) / total}%`,
+              // width: `${(claimed * 100) / total}%`,
               background: `linear-gradient(180deg, #08EDDF -450%, #CEED8B 600%)`,
             }}
           ></div>
@@ -128,7 +128,7 @@ const ClaimProgress: FC<{
               }}
             ></div>
             Claimed
-            <span className="">{formatBalanceNumber(claimed, 0)}</span>
+            <span className="">{formatBalanceNumber(0, 0)}</span>
           </div>
           <div className="flex items-center gap-2">
             <div
@@ -138,12 +138,12 @@ const ClaimProgress: FC<{
               }}
             ></div>
             Unlocked
-            <span className="">{formatBalanceNumber(unlocked, 0)}</span>
+            <span className="">{formatBalanceNumber(0, 0)}</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-2.5 h-2.5 rounded-full opacity-40 bg-white/15"></div>
-            Total allocation
-            <span className="">{formatBalanceNumber(total, 0)}</span>
+            Locked
+            <span className="">{formatBalanceNumber(0, 0)}</span>
           </div>
         </div>
       </div>
@@ -214,9 +214,9 @@ const ClaimProgress: FC<{
                 <path
                   d="M1 1L4.5 4.5L1 8"
                   stroke="url(#paint0_linear_4503_395)"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
                 <defs>
                   <linearGradient
@@ -227,19 +227,20 @@ const ClaimProgress: FC<{
                     y2="8"
                     gradientUnits="userSpaceOnUse"
                   >
-                    <stop stop-color="#08EDDF" />
-                    <stop offset="1" stop-color="#CEED8B" />
+                    <stop stopColor="#08EDDF" />
+                    <stop offset="1" stopColor="#CEED8B" />
                   </linearGradient>
                 </defs>
               </svg>
             </span>
             Remaining unlocks on the 11th of each month over 6 months.
           </span>
+
           <ProgressSvg className="hidden lg:block" />
-          <div className="flex flex-col items-center gap-2 lg:hidden w-[50vw]">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-2 w-[50vw] lg:w-full px-10 pr-2">
             {progressList.map((progress) => (
               <div
-                className="flex items-center justify-between w-full"
+                className="flex flex-row lg:flex-col items-center justify-between gap-2 w-full lg:w-auto"
                 key={progress.label}
               >
                 <span className="">{progress.label}</span>

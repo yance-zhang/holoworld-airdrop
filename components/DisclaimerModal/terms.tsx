@@ -20,7 +20,7 @@ const TermsModal: FC<{
             Terms And Conditions
           </div>
 
-          <div className="text-sm text-white/80 leading-5 tracking-tight max-w-prose whitespace-pre-wrap break-words max-h-[calc(100vh-243px)] overflow-scroll">
+          <div className="text-sm text-white/80 leading-5 tracking-tight max-w-prose whitespace-pre-wrap break-words max-h-[350px] overflow-scroll">
             <h3 className="text-lg text-center">
               $HOLO AIRDROP PROGRAMME TERMS AND CONDITIONS
             </h3>

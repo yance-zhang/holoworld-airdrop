@@ -70,3 +70,31 @@ export const getBscAirdropProofApi = async (address: string) => {
 export const getSolanaAirdropProofApi = async (address: string) => {
   return axios.get<AirdropProof>(`/merkle_proof/solana/${address}`);
 };
+
+export type AuthTextTemplate = {
+  tip_info: string;
+};
+
+export const getAuthTextTemplate = async (address: string) => {
+  return axios.get<AuthTextTemplate>(
+    `https://mainnet-api.cyberhunter.io/auth/tip_info/${address}`,
+  );
+};
+
+export const getBscEligibilityProof = async (
+  address: string,
+  signature: string,
+) => {
+  return axios.get<AirdropProof>(
+    `https://mainnet-api.cyberhunter.io/merkle_proof/bsc/${address}?signature=${signature}`,
+  );
+};
+
+export const getSolanaEligibilityProof = async (
+  address: string,
+  signature: string,
+) => {
+  return axios.get<AirdropProof>(
+    `https://mainnet-api.cyberhunter.io/merkle_proof/solana/${address}?signature=${signature}`,
+  );
+};

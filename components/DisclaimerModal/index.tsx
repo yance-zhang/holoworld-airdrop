@@ -21,8 +21,8 @@ const DisclaimerModal: FC<{
             Disclaimer
           </div>
 
-          <div className="text-sm text-white/80 leading-5 tracking-tight max-w-prose whitespace-pre-wrap break-words max-h-[calc(100vh-243px)] overflow-scroll">
-            <h3 className="text-lg text-center">
+          <div className="text-sm text-white/80 leading-5 tracking-tight max-h-[350px] max-w-prose whitespace-pre-wrap break-words overflow-scroll">
+            <h3 className="text-lg text-center mb-2">
               Important Disclaimers and Acknowledgement of Terms of Use for the
               $HOLO Airdrop Programme
             </h3>

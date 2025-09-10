@@ -5,6 +5,7 @@ import Eligible5 from '@/assets/images/layout/eligible-5.svg';
 import Eligible6 from '@/assets/images/layout/eligible-6.svg';
 import HoloIcon from '@/assets/images/layout/holo.svg';
 import EligibleCheck from '@/components/EligibleCheck';
+import Head from 'next/head';
 import { FC, SVGProps, useState } from 'react';
 
 export const EligibleIconMap: Record<string, FC<SVGProps<any>>> = {
@@ -51,8 +52,13 @@ const Home: FC = () => {
   const completeCheck = () => setState('claim');
 
   return (
-    <div className="relative flex flex-col items-center max-w-[100vw] p-4">
-      <div className="relative flex flex-col items-center py-7 gap-8 w-full lg:max-w-[826px]">
+    <>
+      <Head>
+        <title>HoloWorld Airdrop - Check Your $HOLO Eligibility</title>
+        <meta name="description" content="Check your eligibility and claim your $HOLO tokens. Available for AVA stakers, burners, NFT holders, and more." />
+      </Head>
+      <div className="relative flex flex-col items-center max-w-[100vw] p-4">
+        <div className="relative flex flex-col items-center py-7 gap-8 w-full lg:max-w-[826px]">
         <div className="flex flex-col gap-6 items-center w-full">
           <div className="flex flex-col items-center gap-6 w-full">
             <div className="flex flex-col items-center font-[PPMonumentExtended] font-medium w-full tracking-tighter uppercase">
@@ -118,6 +124,7 @@ const Home: FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

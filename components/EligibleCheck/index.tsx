@@ -1,20 +1,28 @@
 import {
   AirdropProof,
+  getAuthTextTemplate,
   getBscAirdropProofApi,
+  getBscEligibilityProof,
   getSolanaAirdropProofApi,
+  getSolanaEligibilityProof,
 } from '@/api';
-import AddIcon from '@/assets/images/airdrop/add.svg';
 import EthIcon from '@/assets/images/airdrop/eth.svg';
 import SolIcon from '@/assets/images/airdrop/sol.svg';
 import UnconnectedIcon from '@/assets/images/airdrop/unconnected.svg';
-import WalletIcon from '@/assets/images/layout/wallet.svg';
 import { formatBalanceNumber, shortenAddress } from '@/utils';
 import clsx from 'clsx';
-import { FC, useMemo, useState } from 'react';
+import { FC, useEffect, useMemo, useState } from 'react';
 import { isAddress } from 'viem';
 import { NetworkTabs } from '../VerifyAddress';
 import ClaimProgress from './claimProgress';
 import { EligibleIconMap } from '@/pages';
+import { useAppStore } from '@/context/AppStoreContext';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
+import { PublicKey } from '@solana/web3.js';
+import WalletIcon from '@/assets/images/layout/wallet.svg';
+import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
+import { useToast } from '@/context/ToastContext';
 
 type addressInfo = {
   address: string;
@@ -104,9 +112,15 @@ const AddressItem: FC<{
 const EligibleCheck: FC<{ completeCheck: () => void }> = ({
   completeCheck,
 }) => {
+  const { openEvm, openSol } = useAppStore();
+  const { addToast } = useToast();
+  const { signMessage, publicKey, disconnect: disconnectSolana } = useWallet();
+  const { signMessageAsync } = useSignMessage();
+  const { address: EvmAddress } = useAccount();
   const [inputValue, setInputValue] = useState<string>('');
   const [addressList, setAddressList] = useState<addressInfo[]>([]);
   const [checked, setChecked] = useState<boolean>(false);
+  const disconnectEvm = useDisconnect();
   const [networkTab, setNetworkTab] = useState(NetworkTabs[0].name);
 
   const limitSolAddress = networkTab == 'SOL' && addressList.length == 1;
@@ -130,53 +144,95 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
     );
   }, [addressList]);
 
-  const handleAdd = () => {
-    if (!inputValue || limitEvmAddress || limitSolAddress) return;
-
-    setAddressList([
-      ...addressList,
-      {
-        address: inputValue,
-        network: isAddress(inputValue) ? 'EVM' : 'SOL',
-      },
-    ]);
-
-    setInputValue('');
-    setChecked(false);
-  };
-
-  const handleCheck = async () => {
-    let list = [];
-
-    for (let index = 0; index < addressList.length; index++) {
-      const addr = addressList[index];
-
-      try {
-        const res =
-          networkTab === 'EVM'
-            ? await getBscAirdropProofApi(addr.address)
-            : await getSolanaAirdropProofApi(addr.address);
-
-        console.log(res);
-
-        if (res.total) {
-          list.push({ ...addr, proof: res });
-        } else {
-          list.push(addr);
-        }
-      } catch (error) {
-        list.push(addr);
-      }
+  const onSolConnected = async (address: string) => {
+    const res = await getAuthTextTemplate(address);
+    if (!res) {
+      console.log('error when getting template');
+      return; // Add return here
     }
-    console.log(list);
 
-    setAddressList(list);
-    setChecked(true);
+    const message = res.tip_info;
+
+    try {
+      const signature = await signMessage!(Buffer.from(message));
+      const signatureString = bs58.encode(signature);
+
+      const res = await getSolanaEligibilityProof(address, signatureString);
+
+      if (res.error) {
+        setAddressList([...addressList, { address, network: 'SOL' }]);
+        return;
+      }
+
+      setAddressList([
+        ...addressList,
+        { address: res.address, network: 'SOL', proof: res },
+      ]);
+      // setChecked(true);
+    } catch (error) {
+      console.log(error);
+    }
   };
+
+  const onEvmConnected = async (address: string) => {
+    try {
+      const tipInfoRes = await getAuthTextTemplate(address);
+
+      const { tip_info } = tipInfoRes;
+      const signature = await signMessageAsync({ message: tip_info });
+
+      const res = await getBscEligibilityProof(address, signature);
+
+      if (res.error) {
+        setAddressList([...addressList, { address, network: 'EVM' }]);
+        return;
+      }
+      setAddressList([
+        ...addressList,
+        { address: res.address, network: 'EVM', proof: res },
+      ]);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    if (EvmAddress && networkTab === 'EVM') {
+      onEvmConnected(EvmAddress);
+    }
+  }, [EvmAddress, networkTab]);
+
+  useEffect(() => {
+    if (publicKey && networkTab === 'SOL') {
+      onSolConnected(publicKey.toBase58());
+    }
+  }, [publicKey, networkTab]);
 
   const disconnectAddress = (address: string) => {
     setAddressList(addressList.filter((addr) => addr.address !== address));
+    if (networkTab === 'SOL') {
+      disconnectSolana();
+    } else {
+      disconnectEvm.disconnect();
+    }
   };
+
+  const openConnect = () => {
+    if (limitEvmAddress || limitSolAddress) {
+      return;
+    }
+    if (networkTab == 'EVM') {
+      openEvm();
+    }
+    if (networkTab == 'SOL') {
+      openSol();
+    }
+  };
+
+  useEffect(() => {
+    disconnectEvm.disconnect();
+    disconnectSolana();
+  }, []);
 
   return (
     <div className="flex flex-col items-center gap-6 w-full p-4">
@@ -194,7 +250,13 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
               onClick={() => {
                 setNetworkTab(network.name);
                 setAddressList([]);
-                setChecked(false);
+                // setChecked(false);
+
+                if (network.name === 'SOL') {
+                  disconnectEvm.disconnect();
+                } else {
+                  disconnectSolana();
+                }
               }}
             >
               {network.icon && <network.icon />}
@@ -205,14 +267,14 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
       </div>
       {/* add address */}
       <div className="flex flex-col items-center gap-2 w-full">
-        <div className="flex items-center justify-between gap-3 w-full lg:max-w-[628px]">
+        {/*<div className="flex items-center justify-between gap-3 w-full lg:max-w-[628px]">
           <div className="h-[1px] w-1/3 bg-white/20"></div>
           <span className="font-semibold text-sm text-nowrap opacity-60">
             Verify Wallet Address*
           </span>
           <div className="h-[1px] w-1/3 bg-white/20"></div>
-        </div>
-        <label
+        </div>*/}
+        {/*<label
           className={clsx(
             'input input-sm flex items-center gap-2 h-10 bg-white/5 max-w-full w-full border focus-within:border-[#6FFFCB]',
           )}
@@ -235,17 +297,17 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
           >
             <AddIcon /> Add Wallet
           </button>
-        </label>
+        </label> */}
       </div>
 
       {/* address list */}
       <div className="flex flex-col items-center w-full">
-        <div className="flex flex-col w-full py-3 gap-4 rounded-b-2xl">
+        <div className="flex flex-col w-full gap-4 rounded-b-2xl">
           <div className="flex flex-col gap-3">
             {addressList.map((address, index) => (
               <AddressItem
                 key={address.address}
-                checked={checked}
+                checked={true}
                 address={address}
                 network={networkTab}
                 disconnectAddress={disconnectAddress}
@@ -264,6 +326,18 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
         </div>
 
         <button
+          className="btn mt-4 w-[240px] lg:w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
+          onClick={openConnect}
+          disabled={limitEvmAddress || limitSolAddress}
+          style={{
+            background:
+              'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
+          }}
+        >
+          Connect Wallet
+        </button>
+
+        {/*<button
           className="btn mt-3 w-[240px] lg:w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
           onClick={handleCheck}
           disabled={addressList.length === 0}
@@ -273,7 +347,7 @@ const EligibleCheck: FC<{ completeCheck: () => void }> = ({
           }}
         >
           Check Eligibility Now
-        </button>
+        </button>*/}
       </div>
 
       <ClaimProgress

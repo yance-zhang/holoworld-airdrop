@@ -36,7 +36,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       <DisclaimerModal
         open={open}
-        onClose={closeDisclaimer}
+        onClose={() => {
+          window.location.href = 'about:blank';
+        }}
         onConfirm={closeDisclaimer}
       />
     </div>

@@ -31,16 +31,10 @@ const ConnectWallet: FC<{
               <button
                 className="btn w-[268px]"
                 key={connector.id}
-                onClick={() =>
-                  connect(
-                    { connector },
-                    {
-                      onSuccess: (info) => {
-                        onClose();
-                      },
-                    },
-                  )
-                }
+                onClick={() => {
+                  connect({ connector });
+                  onClose();
+                }}
               >
                 {connector.icon && (
                   <img
