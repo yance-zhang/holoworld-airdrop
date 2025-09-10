@@ -446,11 +446,11 @@ export const useAirdropClaimOnSolana = () => {
       console.log(`Transaction sent: ${txSignature}`);
 
       // Confirm transaction
-      const confirmation = await connection.confirmTransaction(
-        txSignature,
-        'confirmed',
-      );
-      console.log('Transaction confirmed:', confirmation);
+      // const confirmation = await connection.confirmTransaction(
+      //   txSignature,
+      //   'confirmed',
+      // );
+      // console.log('Transaction confirmed:', confirmation);
 
       return txSignature;
     } catch (error: any) {

@@ -13,6 +13,7 @@ import {
 } from '@/contract/bnb';
 import { SolSignedData, useAirdropClaimOnSolana } from '@/contract/solana';
 import { shortenAddress } from '@/utils';
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { PublicKey } from '@solana/web3.js';
@@ -21,7 +22,6 @@ import { Address } from 'viem';
 import { useChainId, useDisconnect, useSignMessage } from 'wagmi';
 import ConnectWallet from '../components/ConnectWallet';
 import { useToast } from './ToastContext';
-import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 
 interface AppStoreContextType {
   evmReceiverAddress: string;
@@ -30,6 +30,7 @@ interface AppStoreContextType {
   evmOpen: boolean;
   openEvm: () => void;
   closeEvm: () => void;
+  disconnectEvmAddress: (index: number) => void;
   evmAddressList: AirdropProof[];
   evmSignData: SignData[];
   onEvmConnected: (address: string) => void;
@@ -40,6 +41,7 @@ interface AppStoreContextType {
   solAddressList: AirdropProof[];
   solSignedData?: SolSignedData;
   onSolConnected: (address: string) => void;
+  disconnectSolAddress: () => void;
 }
 
 const AppStoreContext = createContext<AppStoreContextType>({
@@ -53,6 +55,7 @@ const AppStoreContext = createContext<AppStoreContextType>({
   openEvm: () => {},
   closeEvm: () => {},
   onEvmConnected(address) {},
+  disconnectEvmAddress(index) {},
 
   // sol
   solReceiverAddress: '',
@@ -61,6 +64,7 @@ const AppStoreContext = createContext<AppStoreContextType>({
   closeSol: () => {},
   solAddressList: [],
   onSolConnected(address) {},
+  disconnectSolAddress() {},
 });
 
 export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -83,55 +87,74 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const onEvmConnected = useCallback(
     async (address: string) => {
-      const index = evmAddressList.findIndex(
-        (addr) => addr.address === address,
-      );
-      if (index > -1 || !evmReceiverAddress) {
-        return;
-      }
+      try {
+        const index = evmAddressList.findIndex(
+          (addr) => addr.address === address,
+        );
+        if (index > -1 || !evmReceiverAddress) {
+          return;
+        }
 
-      const tipInfoRes = await getAuthTextTemplate(address);
+        const tipInfoRes = await getAuthTextTemplate(address);
 
-      const { tip_info } = tipInfoRes;
-      const signature = await signMessageAsync({ message: tip_info });
+        const { tip_info } = tipInfoRes;
+        const signature = await signMessageAsync({ message: tip_info });
 
-      const res = await getBscEligibilityProof(address, signature);
+        const res = await getBscEligibilityProof(address, signature);
 
-      if (res.error) {
-        addToast(`Account: ${shortenAddress(address)} is not eligible.`);
+        if (res.error) {
+          addToast(`Account: ${shortenAddress(address)} is not eligible.`);
+          disconnectEvm();
+          return;
+        }
+
+        const signData = await generateSignature({
+          chainId: BigInt(chainId),
+          contractAddress: evmContractAddress,
+          receiverAddress: evmReceiverAddress as Address,
+          amount: BigInt(res.proofs[0].amount),
+          proof: res.proofs[0].proof as any[],
+          expiredAt: Math.floor(Date.now() / 1000) + 3600,
+        });
+
+        if (signData) {
+          setEvmSignData([...evmSignData, signData]);
+        }
+
+        setEvmAddressList([...evmAddressList, res]);
+      } catch (error) {
+        console.log(error);
         disconnectEvm();
-        return;
       }
-
-      const signData = await generateSignature({
-        chainId: BigInt(chainId),
-        contractAddress: evmContractAddress,
-        receiverAddress: evmReceiverAddress as Address,
-        amount: BigInt(res.proofs[0].amount),
-        proof: res.proofs[0].proof as any[],
-        expiredAt: Math.floor(Date.now() / 1000) + 3600,
-      });
-
-      if (signData) {
-        setEvmSignData([...evmSignData, signData]);
-      }
-
-      setEvmAddressList([...evmAddressList, res]);
     },
     [
-      addToast,
-      chainId,
-      disconnectEvm,
       evmAddressList,
-      evmSignData,
-      generateSignature,
       evmReceiverAddress,
+      signMessageAsync,
+      generateSignature,
+      chainId,
+      addToast,
+      disconnectEvm,
+      evmSignData,
     ],
   );
 
+  const disconnectEvmAddress = (index: number) => {
+    if (index < 0 || index >= evmAddressList.length) {
+      return;
+    }
+    const newEvmList = [...evmAddressList];
+    newEvmList.splice(index, 1);
+    setEvmAddressList(newEvmList);
+    const newSignDataList = [...evmSignData];
+    newSignDataList.splice(index, 1);
+    setEvmSignData(newSignDataList);
+    disconnectEvm();
+  };
+
   // SOL
   const { setVisible } = useWalletModal();
-  const { signMessage, publicKey } = useWallet();
+  const { signMessage, publicKey, disconnect: disconnectSolana } = useWallet();
   const { signClaimReward } = useAirdropClaimOnSolana();
   // const [solOpen, setSolOpen] = useState<boolean>(false);
   const [solReceiverAddress, setSolReceiverAddress] = useState<string>('');
@@ -167,6 +190,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         const res = await getSolanaEligibilityProof(address, signatureString);
         setSolAddressList([...solAddressList, res]);
 
+        if (res.error) {
+          addToast(`Account: ${shortenAddress(address)} is not eligible.`);
+          disconnectSolana();
+          return;
+        }
+
         if (!solReceiverAddress) {
           return;
         }
@@ -182,11 +211,18 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
         setSolSignedData(signRes);
       } catch (error) {
+        disconnectSolana();
         console.log(error);
       }
     },
     [publicKey, solAddressList, solReceiverAddress],
   );
+
+  const disconnectSolAddress = () => {
+    setSolAddressList([]);
+    setSolSignedData(undefined);
+    disconnectSolana();
+  };
 
   const reset = () => {
     setSolReceiverAddress('');
@@ -207,6 +243,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         openEvm,
         closeEvm,
         onEvmConnected,
+        disconnectEvmAddress,
         setEvmReceiverAddress,
         reset,
         // sol
@@ -217,6 +254,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         closeSol,
         onSolConnected,
         setSolReceiverAddress,
+        disconnectSolAddress,
       }}
     >
       {children}

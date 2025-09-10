@@ -49,8 +49,8 @@ const Home: FC = () => {
   };
 
   const completeClaim = (amount: number) => {
-    setState('stake');
     setClaimAmount(amount);
+    setState('stake');
   };
 
   return (
@@ -100,7 +100,7 @@ const Home: FC = () => {
             </div>
             <div className="w-full py-8">
               {state === 'check' && (
-                <CheckAndSign completeCheck={completeCheck} />
+                <CheckAndSign completeClaim={completeClaim} />
               )}
               {state === 'claim' && (
                 <VerifyAddress completeClaim={completeClaim} />

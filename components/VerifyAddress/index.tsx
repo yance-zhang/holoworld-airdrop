@@ -185,7 +185,6 @@ const VerifyAddress: FC<{ completeClaim: (amount: number) => void }> = ({
   };
 
   const handleClaim = () => {
-    setDisclaimerOpen(false);
     if (networkTab === 'SOL') {
       if (publicKey?.toBase58() !== solReceiverAddress) {
         openSol();
@@ -274,7 +273,21 @@ const VerifyAddress: FC<{ completeClaim: (amount: number) => void }> = ({
 
         <button
           className="btn mt-3 w-[280px] lg:w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
-          onClick={() => setDisclaimerOpen(true)}
+          onClick={() => {
+            if (networkTab === 'SOL') {
+              if (publicKey?.toBase58() !== solReceiverAddress) {
+                openSol();
+                return;
+              }
+            }
+            if (networkTab === 'EVM') {
+              if (address !== evmReceiverAddress) {
+                openEvm();
+                return;
+              }
+            }
+            setDisclaimerOpen(true);
+          }}
           disabled={
             (networkTab === 'EVM' && evmAddressList.length === 0) ||
             (networkTab === 'SOL' && !publicKey)

@@ -38,6 +38,7 @@ const ClaimProgress: FC<{
   btnDisabled?: boolean;
   isClaim?: boolean;
   isChecked?: boolean;
+  connectReceiver?: boolean;
 }> = ({
   claimed,
   unlocked,
@@ -46,6 +47,7 @@ const ClaimProgress: FC<{
   btnDisabled,
   isClaim,
   isChecked,
+  connectReceiver,
 }) => {
   const [termsOpen, setTermsOpen] = useState<boolean>(false);
 
@@ -106,7 +108,7 @@ const ClaimProgress: FC<{
           <div
             className="absolute min-w-2 h-2 rounded-full opacity-40"
             style={{
-              // width: `${(unlocked * 100) / total}%`,
+              width: `${(unlocked * 100) / total}%`,
               background: `linear-gradient(180deg, #08EDDF -450%, #CEED8B 600%)`,
             }}
           ></div>
@@ -114,7 +116,7 @@ const ClaimProgress: FC<{
           <div
             className="absolute left-0 top-0 min-w-2 h-2 rounded-full"
             style={{
-              // width: `${(claimed * 100) / total}%`,
+              width: `${(claimed * 100) / total}%`,
               background: `linear-gradient(180deg, #08EDDF -450%, #CEED8B 600%)`,
             }}
           ></div>
@@ -128,7 +130,7 @@ const ClaimProgress: FC<{
               }}
             ></div>
             Claimed
-            <span className="">{formatBalanceNumber(0, 0)}</span>
+            <span className="">{formatBalanceNumber(claimed, 0)}</span>
           </div>
           <div className="flex items-center gap-2">
             <div
@@ -138,12 +140,12 @@ const ClaimProgress: FC<{
               }}
             ></div>
             Unlocked
-            <span className="">{formatBalanceNumber(0, 0)}</span>
+            <span className="">{formatBalanceNumber(unlocked, 0)}</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-2.5 h-2.5 rounded-full opacity-40 bg-white/15"></div>
             Locked
-            <span className="">{formatBalanceNumber(0, 0)}</span>
+            <span className="">{formatBalanceNumber(total - unlocked, 0)}</span>
           </div>
         </div>
       </div>
@@ -167,7 +169,7 @@ const ClaimProgress: FC<{
                 'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
             }}
           >
-            Claim Now
+            {connectReceiver ? 'Connect Receiver Wallet' : 'Claim Now'}
           </button>
         )}
         {isChecked && (
@@ -244,7 +246,9 @@ const ClaimProgress: FC<{
                 key={progress.label}
               >
                 <span className="">{progress.label}</span>
-                <span className="text-[#6FFFCB]">{progress.value}</span>
+                <span className="text-[#6FFFCB] text-right">
+                  {progress.value}
+                </span>
               </div>
             ))}
           </div>

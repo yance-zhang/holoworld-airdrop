@@ -212,17 +212,17 @@ export function useAirdropClaimOnBSC() {
         });
         console.log(hash);
 
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        // const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
         setClaimStatus({
           isLoading: false,
-          isSuccess: receipt.status === 'success',
+          isSuccess: true,
           isError: false,
           error: null,
           transactionHash: hash,
         });
 
-        return receipt;
+        return hash;
       } catch (error) {
         setClaimStatus({
           isLoading: false,

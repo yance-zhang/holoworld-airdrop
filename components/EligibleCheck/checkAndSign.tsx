@@ -16,22 +16,22 @@ import {
 } from '@/utils';
 import { useWallet } from '@solana/wallet-adapter-react';
 import clsx from 'clsx';
-import { FC, useEffect, useRef, useState } from 'react';
+import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { isAddress } from 'viem';
 import { useAccount, useDisconnect } from 'wagmi';
-import AddWalletModal from '../AddWalletModal';
-import ClaimModal from '../ClaimModal';
+import DisclaimerModal from '../DisclaimerModal';
 import { NetworkTabs } from '../VerifyAddress';
+import { EligibleIconMap } from '@/pages';
+import ClaimProgress from './claimProgress';
 
 const AirdropItem: FC<{
   airdrop: AirdropProof;
   network: string;
-  defaultOpen: boolean;
-}> = ({ airdrop, network, defaultOpen }) => {
+  disconnectAddress: () => void;
+}> = ({ airdrop, network, disconnectAddress }) => {
   const { disconnect } = useDisconnect();
   const { disconnect: DisconnectSolana } = useWallet();
   const { reset } = useAppStore();
-  const [showDetail, setShowDetail] = useState<boolean>(defaultOpen);
 
   const disconnectWallet = () => {
     if (network === 'SOL') {
@@ -46,73 +46,75 @@ const AirdropItem: FC<{
   return (
     <div
       className={clsx(
-        'flex flex-col items-stretch p-[1px] rounded-xl transition-all',
-        showDetail ? 'max-h-[300px]' : 'max-h-[42px]',
+        'flex flex-col items-stretch p-[1px] rounded-xl transition-all lg:w-[814px]',
       )}
     >
-      <div className="flex items-center justify-between px-1.5 lg:px-3 py-1.5 rounded-xl">
-        <div className={clsx('flex items-center gap-1 font-semibold text-sm')}>
-          <span className="flex items-center gap-0.5">
-            {network === 'SOL' ? <SolIcon /> : <EthIcon />}
-            {network}:
-          </span>
-          <span className="font-semibold text-xs lg:text-sm">
+      <div className="flex items-center justify-between px-3 py-1.5 rounded-xl">
+        <div className="flex items-center gap-1 font-semibold text-sm">
+          <span
+            className={clsx(
+              'flex items-center gap-1 font-semibold text-sm',
+              'text-white',
+            )}
+          >
+            <span className="flex items-center gap-0.5">
+              {network === 'SOL' ? <SolIcon /> : <EthIcon />}
+              {network}:
+            </span>
             {shortenAddress(airdrop.address)}
           </span>
+
           <span
-            onClick={() => disconnectWallet()}
-            className="inline-flex w-7 h-7 items-center justify-center rounded bg-[#FF3666]/20 text-[#FF3666]"
+            onClick={() => disconnectAddress()}
+            className="inline-flex w-7 h-7 items-center cursor-pointer justify-center rounded bg-[#FF3666]/20 text-[#FF3666]"
           >
             <UnconnectedIcon />
           </span>
+
+          {airdrop.detail && (
+            <div className="flex items-center gap-1.5">
+              {Object.entries(airdrop.detail).map(([type, amount]) => {
+                const Icon = EligibleIconMap[type];
+                return (
+                  <span
+                    className="tooltip"
+                    data-tip={type.replaceAll('_', ' ').toLocaleUpperCase()}
+                    key={type}
+                  >
+                    <Icon width={28} height={28} />
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
-        <div
-          onClick={() => setShowDetail(!showDetail)}
-          className="flex items-center justify-between h-7 px-2 rounded-md cursor-pointer border border-[#15CE8C]"
-        >
-          <span className="font-medium text-xs lg:text-sm">
-            <b className="font-bold text-white">
-              {formatBalanceNumber(
-                network === 'EVM' ? airdrop.total : airdrop.total,
-              )}{' '}
-              <span className="hidden lg:inline-block"> $HOLO</span>
-            </b>
-          </span>
-          <ArrowDown
-            className={clsx('transition-all', showDetail && 'rotate-180')}
-          />
-        </div>
-      </div>
-      {showDetail && (
-        <div className="flex flex-col p-2 gap-2">
-          <span className="font-medium text-sm text-white/50 pl-2">
-            Eligible Types:
-          </span>
-          <div className="">
-            {Object.entries(airdrop.detail).map(([type, amount]) => (
-              <span
-                key={type}
-                className="inline-block py-1.5 px-2 mr-2 mb-2 rounded-md font-semibold text-xs lg:text-sm capitalize"
-              >
-                {type.replaceAll('_', ' ')}{' '}
-                <span className="text-[#15CE8C]">
-                  {formatBalanceNumber(amount)} $HOLO
-                </span>
-              </span>
-            ))}
+        {airdrop.total ? (
+          <div className="flex items-center justify-between gap-2 px-2 rounded-md border-[#15CE8C] border cursor-pointer">
+            <span className="font-semibold text-sm">
+              {formatBalanceNumber(airdrop.total)} $HOLO
+            </span>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="flex items-center justify-between gap-2 h-7 px-2 rounded-md bg-[#FF3666]/20">
+            <span className="font-semibold text-sm text-[#FF3666]">
+              Ineligible
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
-const CheckAndSign: FC<{ completeCheck: () => void }> = ({ completeCheck }) => {
+const CheckAndSign: FC<{
+  completeClaim: (amount: number) => void;
+}> = ({ completeClaim }) => {
   const { addToast } = useToast();
   const {
     evmAddressList,
     evmReceiverAddress,
     setEvmReceiverAddress,
+    disconnectEvmAddress,
     openEvm,
     evmSignData,
     onEvmConnected,
@@ -123,33 +125,94 @@ const CheckAndSign: FC<{ completeCheck: () => void }> = ({ completeCheck }) => {
     solReceiverAddress,
     setSolReceiverAddress,
     onSolConnected,
+    disconnectSolAddress,
   } = useAppStore();
   const { multiClaim } = useAirdropClaimOnBSC();
   const { claimAirdropWithReceiver } = useAirdropClaimOnSolana();
   const { address } = useAccount();
-  const { publicKey, disconnect: disconnectSolana, signMessage } = useWallet();
+  const { publicKey, disconnect: disconnectSolana } = useWallet();
   const disconnectEvm = useDisconnect();
   const [networkTab, setNetworkTab] = useState(NetworkTabs[0].name);
-  const [addWalletOpen, setAddWalletOpen] = useState<boolean>(false);
-  const [claimOpen, setClaimOpen] = useState<boolean>(false);
+  const [disclaimerOpen, setDisclaimerOpen] = useState<boolean>(false);
   const connectType = useRef<'receiver' | 'sender' | 'none'>('none');
 
   const limitEvmAddress = evmAddressList.length === 10;
   const limitSolAddress = solAddressList.length === 1;
 
-  const handleAddAddress = (addr: string, network: string) => {
-    if (!addr) return;
+  const verifiedCount =
+    networkTab === 'SOL' ? solAddressList.length : evmAddressList.length;
 
-    setNetworkTab(network);
-    // if (network === 'SOL') {
-    //   setSolAddresses([...solAddresses, addr]);
-    // } else if (network === 'BNB') {
-    //   setevmAddressList([...evmAddressList, addr]);
-    // }
+  const { totalAmount, claimedAmount, unlockedAmount } = useMemo(() => {
+    const addressList = networkTab === 'SOL' ? solAddressList : evmAddressList;
+    return addressList.reduce(
+      (pre, cur) => {
+        return {
+          totalAmount: pre.totalAmount + Number(cur.total),
+          claimedAmount: pre.claimedAmount + Number(0),
+          unlockedAmount: pre.unlockedAmount + Number(cur.unlocked),
+        };
+      },
+      {
+        totalAmount: 0,
+        claimedAmount: 0,
+        unlockedAmount: 0,
+      },
+    );
+  }, [evmAddressList, networkTab, solAddressList]);
+
+  const claimOnBsc = async () => {
+    if (evmSignData.length === 0) {
+      return;
+    }
+    try {
+      const phase = evmAddressList[0].proofs[0].phase;
+      const res = await multiClaim(phase, evmSignData);
+
+      console.log(res);
+      completeClaim(Number(totalAmount));
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const claimOnSolana = async () => {
+    if (!publicKey || !solSignedData) {
+      return;
+    }
+    try {
+      const res = await claimAirdropWithReceiver({
+        proofInfo: solAddressList[0],
+        signedData: solSignedData,
+      });
+      console.log(res);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const handleClaim = () => {
-    completeCheck();
+    if (networkTab === 'SOL') {
+      if (publicKey?.toBase58() !== solReceiverAddress) {
+        openSol();
+        return;
+      }
+    }
+    if (networkTab === 'EVM') {
+      if (address !== evmReceiverAddress) {
+        openEvm();
+        return;
+      }
+    }
+    setDisclaimerOpen(true);
+  };
+
+  const doClaim = () => {
+    setDisclaimerOpen(false);
+    if (networkTab === 'SOL') {
+      claimOnSolana();
+    } else {
+      claimOnBsc();
+    }
   };
 
   const openConnect = () => {
@@ -158,6 +221,14 @@ const CheckAndSign: FC<{ completeCheck: () => void }> = ({ completeCheck }) => {
     }
     if (networkTab == 'SOL') {
       openSol();
+    }
+  };
+
+  const disconnectAddress = (index: number) => {
+    if (networkTab === 'EVM') {
+      disconnectEvmAddress(index);
+    } else {
+      disconnectSolana();
     }
   };
 
@@ -213,21 +284,12 @@ const CheckAndSign: FC<{ completeCheck: () => void }> = ({ completeCheck }) => {
     reset();
   }, []);
 
-  const verifiedCount =
-    networkTab === 'SOL' ? solAddressList.length : evmAddressList.length;
-
-  const totalAmount = (
-    networkTab === 'SOL' ? solAddressList : evmAddressList
-  ).reduce((pre, cur) => {
-    return pre + Number(cur.total);
-  }, 0);
-
   return (
     <div className="flex flex-col items-center gap-6 w-full">
       <div className="flex flex-col items-center gap-3 w-full">
         <div className="flex items-center gap-3 w-full lg:w-[628px]">
           <div className="h-[1px] w-1/3 bg-white/20"></div>
-          <span className="font-semibold text-sm lg:text-base text-nowrap">
+          <span className="font-semibold text-sm lg:text-base text-nowrap text-white/60">
             Select Claim Network
           </span>
           <div className="h-[1px] w-1/3 bg-white/20"></div>
@@ -309,25 +371,14 @@ const CheckAndSign: FC<{ completeCheck: () => void }> = ({ completeCheck }) => {
       </div>
       {/* address list */}
       <div className="flex flex-col items-center w-full px-3">
-        {/* {networkTab === 'EVM' && (
-          <div className="flex items-center justify-between h-[83px] w-full lg:w-[698px] px-6 rounded-2xl border border-white bg-white/35">
-            <span className="font-semibold text-sm">Total Eligible Token</span>
-            <span className="flex items-end font-[PPMonumentExtended]">
-              <span className="font-bold text-[30px]">
-                {formatBalanceNumber(formatEther(totalAmount))}
-              </span>
-              <span className="font-medium text-xs text-black/80">$HOLO</span>
-            </span>
-          </div>
-        )} */}
         <div className="flex flex-col w-full py-3 gap-4 px-0 rounded-b-2xl">
-          <div className="flex items-center justify-center gap-1 text-sm font-medium">
+          <div className="flex items-center justify-center gap-1 text-sm font-medium text-white/80">
             Verified{' '}
-            <b className="font-bold text-white">
+            <b className="font-bold text-white/80">
               <b className="text-[#08EDDF]">{verifiedCount}</b>/
               {networkTab === 'SOL' ? 1 : 10}
             </b>{' '}
-            wallets <WalletIcon className="w-4 h-4 text-white/90" />
+            wallets <WalletIcon className="w-4 h-4 text-white/80" />
           </div>
           <div className="flex flex-col gap-3">
             {(networkTab === 'SOL' ? solAddressList : evmAddressList).map(
@@ -335,52 +386,37 @@ const CheckAndSign: FC<{ completeCheck: () => void }> = ({ completeCheck }) => {
                 <AirdropItem
                   key={index}
                   airdrop={airdrop}
-                  defaultOpen={index === 0}
                   network={networkTab}
+                  disconnectAddress={() => disconnectAddress(index)}
                 />
               ),
             )}
           </div>
         </div>
-
-        <button
-          className="btn mt-3 w-[280px] lg:w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
-          onClick={handleClaim}
-          disabled={
-            (networkTab === 'EVM' &&
-              (evmAddressList.length === 0 || !evmReceiverAddress)) ||
-            (networkTab === 'SOL' &&
-              (solAddressList.length === 0 || !solReceiverAddress))
-          }
-          style={{
-            background:
-              'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
-          }}
-        >
-          {'Go to Claim'}
-        </button>
       </div>
 
-      {/* <div className="flex items-center justify-center gap-1 text-sm font-medium">
-        <WalletIcon className="w-4 h-4 text-black/90" />
-        Verify up to{' '}
-        <b className="font-bold text-black">
-          {networkTab === 'SOL' ? 1 : 10}
-        </b>{' '}
-        wallets
-      </div> */}
-
-      <AddWalletModal
-        open={addWalletOpen}
-        onClose={() => setAddWalletOpen(false)}
-        onConfirm={handleAddAddress}
-        network={networkTab}
+      <ClaimProgress
+        claimed={claimedAmount}
+        unlocked={unlockedAmount}
+        total={totalAmount}
+        onClick={handleClaim}
+        btnDisabled={
+          (networkTab === 'EVM' &&
+            (evmAddressList.length === 0 || !evmReceiverAddress)) ||
+          (networkTab === 'SOL' &&
+            (solAddressList.length === 0 || !solReceiverAddress))
+        }
+        isClaim={true}
+        connectReceiver={
+          (networkTab === 'EVM' && evmReceiverAddress !== address) ||
+          (networkTab === 'SOL' && solReceiverAddress !== publicKey?.toBase58())
+        }
       />
 
-      <ClaimModal
-        open={claimOpen}
-        onClose={() => setClaimOpen(false)}
-        network={NetworkTabs[networkTab === 'SOL' ? 0 : 1]}
+      <DisclaimerModal
+        open={disclaimerOpen}
+        onClose={() => setDisclaimerOpen(false)}
+        onConfirm={doClaim}
       />
     </div>
   );

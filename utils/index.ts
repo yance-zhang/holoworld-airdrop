@@ -39,7 +39,7 @@ export const formatNumber = (num: number = 0, precision: number = 3) => {
 
 export const formatBalanceNumber = (
   num: number | string,
-  precision: number = 2,
+  precision: number = 0,
 ) => {
   if (!num || !Number(num)) {
     return '-';
