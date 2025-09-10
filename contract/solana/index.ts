@@ -234,8 +234,6 @@ export const useAirdropClaimOnSolana = () => {
   //   const serializedTx = versionedTx.serialize();
   //   const txSize = serializedTx.length;
 
-  //   console.log(`✅ 这笔版本化交易的大小是: ${txSize} 字节`);
-
   //   let signature = '';
 
   //   try {
@@ -287,25 +285,10 @@ export const useAirdropClaimOnSolana = () => {
     if (!publicKey) {
       return;
     }
-    const phase = new BN(proofInfo.proofs[0].phase);
 
     const program = new Program(IDL as Idl, {
       connection,
     });
-
-    const [merkleRoot, merkleRootBump] = PublicKey.findProgramAddressSync(
-      [
-        MERKLE_ROOT_SEEDS,
-        phase.toArrayLike(Buffer, 'le', 1),
-        airdropTokenMint.toBuffer(),
-      ],
-      program.programId,
-    );
-    console.log(
-      'merkle_root(init), bump: ',
-      merkleRoot.toBase58(),
-      merkleRootBump,
-    );
 
     console.log('正在从链上获取地址查找表账户...');
     const lookupTableAccountResponse =
@@ -317,24 +300,6 @@ export const useAirdropClaimOnSolana = () => {
     if (!lookupTableAccount) {
       throw new Error(`无法在链上找到地址查找表: ${lutAddress.toBase58()}`);
     }
-
-    const merkleRootInfo = await (program.account as any).merkleRoot.fetch(
-      merkleRoot,
-    );
-    console.log('merkleRootInfo: ', JSON.stringify(merkleRootInfo));
-
-    console.log(
-      'merkleRoot: ',
-      Buffer.from(merkleRootInfo.merkleRoot).toString('hex'),
-    );
-
-    const merkleTokenVault = getAssociatedTokenAddressSync(
-      airdropTokenMint,
-      merkleRoot,
-      true,
-      TOKEN_PROGRAM_ID,
-    );
-    console.log('merkleTokenVault: ', merkleTokenVault.toBase58());
 
     const userTokenVault = getAssociatedTokenAddressSync(
       airdropTokenMint,
@@ -348,77 +313,111 @@ export const useAirdropClaimOnSolana = () => {
 
     let verifyInstIdx = 2;
 
-    const [claimRecord, claimRecordBump] = PublicKey.findProgramAddressSync(
-      [
-        CLAIM_RECORD_SEEDS,
-        phase.toArrayLike(Buffer, 'le', 1),
-        signedData.signer.toBuffer(),
-        airdropTokenMint.toBuffer(),
-      ],
-      program.programId,
-    );
-    console.log(
-      'claim record(init), bump: ',
-      claimRecord.toBase58(),
-      claimRecordBump,
-    );
+    for (let i = 0; i < proofInfo.proofs.length; i++) {
+      const proof = proofInfo.proofs[i];
 
-    // use claimRecord to check if already claimed
-    const accountInfo = await connection.getAccountInfo(
-      new PublicKey(claimRecord),
-    );
-    if (accountInfo === null) {
-      console.log('Account does not exist');
-    } else {
-      console.log(
-        'Account Balance:',
-        accountInfo.lamports / 1_000_000_000,
-        'SOL',
+      const phase = new BN(proof.phase);
+
+      const [merkleRoot, merkleRootBump] = PublicKey.findProgramAddressSync(
+        [
+          MERKLE_ROOT_SEEDS,
+          phase.toArrayLike(Buffer, 'le', 1),
+          airdropTokenMint.toBuffer(),
+        ],
+        program.programId,
       );
-      addToast('Account Already claimed', 'warning');
-      return;
+      console.log(
+        'merkle_root(init), bump: ',
+        merkleRoot.toBase58(),
+        merkleRootBump,
+      );
+
+      const merkleRootInfo = await (program.account as any).merkleRoot.fetch(
+        merkleRoot,
+      );
+      console.log('merkleRootInfo: ', JSON.stringify(merkleRootInfo));
+
+      console.log(
+        'merkleRoot: ',
+        Buffer.from(merkleRootInfo.merkleRoot).toString('hex'),
+      );
+
+      const merkleTokenVault = getAssociatedTokenAddressSync(
+        airdropTokenMint,
+        merkleRoot,
+        true,
+        TOKEN_PROGRAM_ID,
+      );
+      console.log('merkleTokenVault: ', merkleTokenVault.toBase58());
+
+      const [claimRecord, claimRecordBump] = PublicKey.findProgramAddressSync(
+        [
+          CLAIM_RECORD_SEEDS,
+          phase.toArrayLike(Buffer, 'le', 1),
+          signedData.signer.toBuffer(),
+          airdropTokenMint.toBuffer(),
+        ],
+        program.programId,
+      );
+      console.log(
+        'claim record(init), bump: ',
+        claimRecord.toBase58(),
+        claimRecordBump,
+      );
+
+      // use claimRecord to check if already claimed
+      const accountInfo = await connection.getAccountInfo(
+        new PublicKey(claimRecord),
+      );
+      if (accountInfo) {
+        console.log(
+          'Account Balance:',
+          accountInfo.lamports / 1_000_000_000,
+          'SOL',
+        );
+        addToast('Account Already claimed', 'warning');
+        return;
+      }
+
+      const verifySignInst = web3.Ed25519Program.createInstructionWithPublicKey(
+        {
+          publicKey: signedData.signer.toBytes(),
+          message: signedData.data,
+          signature: signedData.signature,
+        },
+      );
+
+      tx.add(verifySignInst);
+
+      const inst = await program.methods
+        .claimAirdropWithReceiver(
+          phase,
+          signedData.signer,
+          new BN(proof.amount), // amount
+          signedData.proof, // proof hash
+          new BN(signedData.expireAt), // expireAt
+          signedData.signature,
+          new BN(verifyInstIdx), // verify_ix_index
+        )
+        .accounts({
+          signer: publicKey,
+          airdropTokenMint: airdropTokenMint,
+          merkleRoot: merkleRoot,
+          merkleTokenVault: merkleTokenVault,
+          userTokenVault: userTokenVault,
+          claimRecord: claimRecord,
+          ixSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+      tx.add(inst);
     }
-
-    const verifySignInst = web3.Ed25519Program.createInstructionWithPublicKey({
-      publicKey: signedData.signer.toBytes(),
-      message: signedData.data,
-      signature: signedData.signature,
-    });
-
-    tx.add(verifySignInst);
-
-    // console.log("proofInfo: ", proofInfo);
-    // console.log("signedData: ", signedData);
-
-    const inst = await program.methods
-      .claimAirdropWithReceiver(
-        phase,
-        signedData.signer,
-        new BN(proofInfo.proofs[0].amount), // amount
-        signedData.proof, // proof hash
-        // new BN(proofInfo.proofs[0].index), // leaves index
-        new BN(signedData.expireAt), // expireAt
-        signedData.signature,
-        new BN(verifyInstIdx), // verify_ix_index
-      )
-      .accounts({
-        signer: publicKey,
-        airdropTokenMint: airdropTokenMint,
-        merkleRoot: merkleRoot,
-        merkleTokenVault: merkleTokenVault,
-        userTokenVault: userTokenVault,
-        claimRecord: claimRecord,
-        ixSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .instruction();
-    tx.add(inst);
 
     const { blockhash } = await connection.getLatestBlockhash();
 
-    console.log(`blockhash: ${blockhash}`);
+    // console.log(`blockhash: ${blockhash}`);
 
     const messageV0 = new TransactionMessage({
       payerKey: publicKey,
@@ -430,7 +429,7 @@ export const useAirdropClaimOnSolana = () => {
     const serializedTx = versionedTx.serialize();
     const txSize = serializedTx.length;
 
-    console.log(`✅ 这笔版本化交易的大小是: ${txSize} 字节`);
+    // console.log(`✅ 这笔版本化交易的大小是: ${txSize} 字节`);
 
     let txSignature = '';
 
