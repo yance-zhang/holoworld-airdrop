@@ -443,7 +443,7 @@ export const useAirdropClaimOnSolana = () => {
       // console.log(signedTx);
 
       // Send transaction
-      txSignature = await connection.sendTransaction(versionedTx, {
+      txSignature = await sendTransaction(versionedTx, connection, {
         skipPreflight: true,
       });
       console.log(`Transaction sent: ${txSignature}`);
