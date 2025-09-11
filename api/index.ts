@@ -58,7 +58,7 @@ export type AirdropProof = {
     address: string;
     amount: string;
     index: number;
-    proof: string[];
+    proof?: string[];
   }[];
   error?: string;
 };

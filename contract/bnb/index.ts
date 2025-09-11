@@ -134,6 +134,15 @@ export function useAirdropClaimOnBSC() {
     error: null,
   });
 
+  function createLeaf(phase: number, address: string, amount: string): Buffer {
+    const types = ['uint8', 'address', 'uint256'] as const;
+    const values: any = [phase, address, BigInt(amount)];
+    const packedData = encodePacked(types, values);
+    const hash = keccak256(packedData).slice(2);
+
+    return Buffer.from(hash, 'hex');
+  }
+
   // Single claim function
   const claim = useCallback(
     async (phase: number, amount: bigint, proof: Hash[]) => {
@@ -181,7 +190,7 @@ export function useAirdropClaimOnBSC() {
 
   // Multi claim function
   const multiClaim = useCallback(
-    async (phase: number, dataList: SignData[]) => {
+    async (dataList: Record<string, SignData | undefined>[]) => {
       if (!publicClient) {
         throw new Error('Public client undefined');
       }
@@ -193,36 +202,60 @@ export function useAirdropClaimOnBSC() {
       });
 
       try {
-        console.log(phase, dataList);
+        console.log('Multi claim data list:', dataList);
 
-        const hash = await writeContractAsync({
-          address: contractAddress,
-          abi: airdropAbi,
-          functionName: 'multiClaim',
-          args: [
-            phase,
-            dataList.map((data) => ({
-              user: data.user,
-              amount: data.amount,
-              proof: data.proof,
-              expredAt: data.expiredAt,
-              signature: data.signature,
-            })),
-          ],
-        });
-        console.log(hash);
+        const maxPhase = 8;
+        // phase loop
+        for (let currentPhase = 1; currentPhase < maxPhase; currentPhase++) {
+          const currentList: SignData[] = [];
 
-        // const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          // address loop
+          for (let i = 0; i < dataList.length; i++) {
+            const addressPhaseMap = dataList[i];
+            const phaseProof = addressPhaseMap[currentPhase];
+            if (phaseProof) {
+              currentList.push(phaseProof);
+            }
+          }
+
+          if (currentList.length === 0) {
+            console.log(
+              `Phase ${currentPhase} - No addresses to claim, skipping...`,
+            );
+            continue;
+          }
+
+          console.log(
+            `Phase ${currentPhase} - Claiming for ${currentList.length} addresses`,
+          );
+
+          const hash = await writeContractAsync({
+            address: contractAddress,
+            abi: airdropAbi,
+            functionName: 'multiClaim',
+            args: [
+              currentPhase,
+              currentList.map((data) => ({
+                user: data.user,
+                amount: data.amount,
+                proof: data.proof,
+                expredAt: data.expiredAt,
+                signature: data.signature,
+              })),
+            ],
+          });
+          console.log(`Phase ${currentPhase} - Transaction sent: ${hash}`);
+        }
 
         setClaimStatus({
           isLoading: false,
           isSuccess: true,
           isError: false,
           error: null,
-          transactionHash: hash,
+          // transactionHash: hash,
         });
 
-        return hash;
+        // return hash;
       } catch (error) {
         setClaimStatus({
           isLoading: false,
@@ -239,11 +272,20 @@ export function useAirdropClaimOnBSC() {
 
   // Check if address has claimed for a specific phase
   const hasClaimed = useCallback(
-    async (phase: number, leaf: Hash): Promise<boolean> => {
+    async ({
+      phase,
+      address,
+      amount,
+    }: {
+      phase: number;
+      address: string;
+      amount: string;
+    }): Promise<boolean> => {
       if (!publicClient) {
         throw new Error('Public client undefined');
       }
       try {
+        const leaf = createLeaf(phase, address, amount);
         const result = await publicClient.readContract({
           address: contractAddress,
           abi: airdropAbi,

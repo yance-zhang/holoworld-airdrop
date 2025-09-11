@@ -1,6 +1,5 @@
 import { AirdropProof } from '@/api';
 import AddIcon from '@/assets/images/airdrop/add.svg';
-import ArrowDown from '@/assets/images/airdrop/arrow-down.svg';
 import EthIcon from '@/assets/images/airdrop/eth.svg';
 import SolIcon from '@/assets/images/airdrop/sol.svg';
 import UnconnectedIcon from '@/assets/images/airdrop/unconnected.svg';
@@ -9,6 +8,7 @@ import { useAppStore } from '@/context/AppStoreContext';
 import { useToast } from '@/context/ToastContext';
 import { useAirdropClaimOnBSC } from '@/contract/bnb';
 import { useAirdropClaimOnSolana } from '@/contract/solana';
+import { EligibleIconMap } from '@/pages';
 import {
   checkSolanaAddress,
   formatBalanceNumber,
@@ -21,7 +21,6 @@ import { isAddress } from 'viem';
 import { useAccount, useDisconnect } from 'wagmi';
 import DisclaimerModal from '../DisclaimerModal';
 import { NetworkTabs } from '../VerifyAddress';
-import { EligibleIconMap } from '@/pages';
 import ClaimProgress from './claimProgress';
 
 const AirdropItem: FC<{
@@ -165,11 +164,9 @@ const CheckAndSign: FC<{
       return;
     }
     try {
-      const phase = evmAddressList[0].proofs[0].phase;
-      const res = await multiClaim(phase, evmSignData);
+      await multiClaim(evmSignData);
 
-      console.log(res);
-      completeClaim(Number(totalAmount));
+      completeClaim(Number(unlockedAmount));
     } catch (error) {
       console.log(error);
     }
@@ -180,11 +177,12 @@ const CheckAndSign: FC<{
       return;
     }
     try {
-      const res = await claimAirdropWithReceiver({
+      await claimAirdropWithReceiver({
         proofInfo: solAddressList[0],
         signedData: solSignedData,
       });
-      console.log(res);
+
+      completeClaim(Number(unlockedAmount));
     } catch (error) {
       console.log(error);
     }
@@ -228,7 +226,7 @@ const CheckAndSign: FC<{
     if (networkTab === 'EVM') {
       disconnectEvmAddress(index);
     } else {
-      disconnectSolana();
+      disconnectSolAddress();
     }
   };
 
@@ -279,9 +277,11 @@ const CheckAndSign: FC<{
   }, [connectType, address]);
 
   useEffect(() => {
-    disconnectEvm.disconnect();
-    disconnectSolana();
-    reset();
+    setTimeout(() => {
+      disconnectEvm.disconnect();
+      disconnectSolana();
+      reset();
+    }, 500);
   }, []);
 
   return (

@@ -159,11 +159,10 @@ const VerifyAddress: FC<{ completeClaim: (amount: number) => void }> = ({
       return;
     }
     try {
-      const phase = 2;
-      const res = await multiClaim(phase, evmSignData);
-
-      console.log(res);
-      completeClaim(Number(totalAmount));
+      // const phase = 2;
+      // const res = await multiClaim(phase, evmSignData);
+      // console.log(res);
+      // completeClaim(Number(totalAmount));
     } catch (error) {
       console.log(error);
     }

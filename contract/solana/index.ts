@@ -290,7 +290,7 @@ export const useAirdropClaimOnSolana = () => {
       connection,
     });
 
-    console.log('正在从链上获取地址查找表账户...');
+    // console.log('正在从链上获取地址查找表账户...');
     const lookupTableAccountResponse =
       await connection.getAddressLookupTable(lutAddress);
 
@@ -440,9 +440,11 @@ export const useAirdropClaimOnSolana = () => {
       }
       const signedTx = await signTransaction(versionedTx);
 
+      console.log(signedTx);
+
       // Send transaction
-      txSignature = await connection.sendRawTransaction(signedTx.serialize());
-      console.log(`Transaction sent: ${txSignature}`);
+      // txSignature = await connection.sendRawTransaction(signedTx.serialize());
+      // console.log(`Transaction sent: ${txSignature}`);
 
       // Confirm transaction
       // const confirmation = await connection.confirmTransaction(
@@ -451,7 +453,7 @@ export const useAirdropClaimOnSolana = () => {
       // );
       // console.log('Transaction confirmed:', confirmation);
 
-      return txSignature;
+      return signedTx;
     } catch (error: any) {
       console.error(error);
       // Handle SendTransactionError and fetch logs

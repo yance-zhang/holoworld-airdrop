@@ -9,6 +9,7 @@ import {
 import {
   evmContractAddress,
   SignData,
+  useAirdropClaimOnBSC,
   useGenerateAirdropSignature,
 } from '@/contract/bnb';
 import { SolSignedData, useAirdropClaimOnSolana } from '@/contract/solana';
@@ -32,7 +33,7 @@ interface AppStoreContextType {
   closeEvm: () => void;
   disconnectEvmAddress: (index: number) => void;
   evmAddressList: AirdropProof[];
-  evmSignData: SignData[];
+  evmSignData: Record<string, SignData | undefined>[];
   onEvmConnected: (address: string) => void;
   solReceiverAddress: string;
   setSolReceiverAddress: (address: string) => void;
@@ -75,10 +76,13 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const chainId = useChainId();
   const { addToast } = useToast();
   const { disconnect: disconnectEvm } = useDisconnect();
+  const { hasClaimed } = useAirdropClaimOnBSC();
   const [evmReceiverAddress, setEvmReceiverAddress] = useState<string>('');
   const [evmOpen, setEvmOpen] = useState<boolean>(false);
   const [evmAddressList, setEvmAddressList] = useState<AirdropProof[]>([]);
-  const [evmSignData, setEvmSignData] = useState<SignData[]>([]);
+  const [evmSignData, setEvmSignData] = useState<
+    Record<string, SignData | undefined>[]
+  >([]);
   const { signMessageAsync } = useSignMessage();
 
   const openEvm = () => setEvmOpen(true);
@@ -107,21 +111,43 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
           disconnectEvm();
           return;
         }
-
-        const signData = await generateSignature({
-          chainId: BigInt(chainId),
-          contractAddress: evmContractAddress,
-          receiverAddress: evmReceiverAddress as Address,
-          amount: BigInt(res.proofs[0].amount),
-          proof: res.proofs[0].proof as any[],
-          expiredAt: Math.floor(Date.now() / 1000) + 3600,
-        });
-
-        if (signData) {
-          setEvmSignData([...evmSignData, signData]);
+        if (
+          res.proofs[0].proof === undefined ||
+          res.proofs[0].proof.length === 0
+        ) {
+          addToast(`Server busy, please try again later.`, 'warning');
+          return;
         }
 
+        // check claimed and sign reward
+        let proofMap: Record<string, SignData | undefined> = {};
+        for (let i = 0; i < res.proofs.length; i++) {
+          const currentProof = res.proofs[i];
+          const claimed = await hasClaimed({
+            phase: currentProof.phase,
+            address: currentProof.address,
+            amount: currentProof.amount,
+          });
+
+          if (claimed) {
+            proofMap[currentProof.phase] = undefined;
+          } else {
+            const signData = await generateSignature({
+              chainId: BigInt(chainId),
+              contractAddress: evmContractAddress,
+              receiverAddress: evmReceiverAddress as Address,
+              amount: BigInt(res.proofs[0].amount),
+              proof: res.proofs[0].proof as any[],
+              expiredAt: Math.floor(Date.now() / 1000) + 3600,
+            });
+
+            proofMap[currentProof.phase] = signData;
+          }
+        }
+
+        setEvmSignData([...evmSignData, proofMap]);
         setEvmAddressList([...evmAddressList, res]);
+        disconnectEvm();
       } catch (error) {
         console.log(error);
         disconnectEvm();
@@ -177,6 +203,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
       try {
         const infoRes = await getAuthTextTemplate(address);
+        console.log(infoRes);
+
         if (!infoRes) {
           console.log('error when getting template');
           return; // Add return here
@@ -197,6 +225,13 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         if (!solReceiverAddress) {
+          return;
+        }
+        if (
+          res.proofs[0].proof === undefined ||
+          res.proofs[0].proof.length === 0
+        ) {
+          addToast(`Server busy, please try again later.`, 'warning');
           return;
         }
         const proof = res.proofs[0].proof.map((x) => Buffer.from(x, 'hex'));
