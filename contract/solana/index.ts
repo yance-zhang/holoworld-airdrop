@@ -376,7 +376,7 @@ export const useAirdropClaimOnSolana = () => {
           'SOL',
         );
         addToast('Account Already claimed', 'warning');
-        return;
+        throw new Error('Airdrop already claimed for this phase');
       }
 
       const verifySignInst = web3.Ed25519Program.createInstructionWithPublicKey(
@@ -435,16 +435,18 @@ export const useAirdropClaimOnSolana = () => {
 
     try {
       // Sign transaction with wallet
-      if (!signTransaction) {
-        throw new Error('Wallet does not support transaction signing');
-      }
-      const signedTx = await signTransaction(versionedTx);
+      // if (!signTransaction) {
+      //   throw new Error('Wallet does not support transaction signing');
+      // }
+      // const signedTx = await signTransaction(versionedTx);
 
-      console.log(signedTx);
+      // console.log(signedTx);
 
       // Send transaction
-      // txSignature = await connection.sendRawTransaction(signedTx.serialize());
-      // console.log(`Transaction sent: ${txSignature}`);
+      txSignature = await connection.sendTransaction(versionedTx, {
+        skipPreflight: true,
+      });
+      console.log(`Transaction sent: ${txSignature}`);
 
       // Confirm transaction
       // const confirmation = await connection.confirmTransaction(
@@ -453,7 +455,7 @@ export const useAirdropClaimOnSolana = () => {
       // );
       // console.log('Transaction confirmed:', confirmation);
 
-      return signedTx;
+      return txSignature;
     } catch (error: any) {
       console.error(error);
       // Handle SendTransactionError and fetch logs

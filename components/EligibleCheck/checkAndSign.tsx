@@ -177,12 +177,14 @@ const CheckAndSign: FC<{
       return;
     }
     try {
-      await claimAirdropWithReceiver({
+      const tx = await claimAirdropWithReceiver({
         proofInfo: solAddressList[0],
         signedData: solSignedData,
       });
 
-      completeClaim(Number(unlockedAmount));
+      if (tx) {
+        completeClaim(Number(unlockedAmount));
+      }
     } catch (error) {
       console.log(error);
     }
