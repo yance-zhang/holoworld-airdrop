@@ -32,5 +32,17 @@ export const lutAddress = new PublicKey(
   'HjvYznDvnN2vwajwuWwpWwSJetpVydYF6pyAyxLvRAfR'
 );
 
+// SOL DEVNET
+export const DevnetProgramId = new PublicKey(
+  'CFgjprV4jBBPD1yKjfADGE9nbtR3HhZ9fWCeYTHa4SbS'
+);
+export const DevnetAirdropTokenMint = new PublicKey(
+  'Gj9HJ5gNUt5gPztwqMsE49yRSUhHZaJgMA7A4TBwo6dK'
+);
+export const DevnetLutAddress = new PublicKey(
+  'Ce1y1DpBfC9EaWqTGB4ADhzJvmhcLWB8fbHwtzW4oHLi'
+);
+export const DevnetAirdropPhase = 1;
+
 // EVM
 export const evmContractAddress = '0xC8f69699d08d5A94c837e51BFBa3AC466f9dB256';

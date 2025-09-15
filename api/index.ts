@@ -12,7 +12,7 @@ axios.interceptors.request.use(
   },
   function (error) {
     return Promise.reject(error);
-  },
+  }
 );
 
 axios.interceptors.response.use(
@@ -25,7 +25,7 @@ axios.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  },
+  }
 );
 
 declare module 'axios' {
@@ -79,24 +79,26 @@ export type AuthTextTemplate = {
 
 export const getAuthTextTemplate = async (address: string) => {
   return axios.get<AuthTextTemplate>(
-    `https://mainnet-api.cyberhunter.io/auth/tip_info/${address}`,
+    `https://mainnet-api.cyberhunter.io/auth/tip_info/${address}`
   );
 };
 
 export const getBscEligibilityProof = async (
   address: string,
-  signature: string,
+  signature: string
 ) => {
   return axios.get<AirdropProof>(
-    `https://mainnet-api.cyberhunter.io/merkle_proof/bsc/${address}?signature=${signature}`,
+    `https://mainnet-api.cyberhunter.io/merkle_proof/bsc/${address}?signature=${signature}`
   );
 };
 
 export const getSolanaEligibilityProof = async (
   address: string,
-  signature: string,
+  signature: string
 ) => {
   return axios.get<AirdropProof>(
-    `https://mainnet-api.cyberhunter.io/merkle_proof/solana/${address}?signature=${signature}`,
+    // `https://mainnet-api.cyberhunter.io/merkle_proof/solana/${address}?signature=${signature}`,
+    // Use devnet endpoint for testing
+    `https://mainnet-api.cyberhunter.io/merkle_proof/solana_devnet/${address}?signature=${signature}`
   );
 };

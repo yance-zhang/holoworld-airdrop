@@ -21,9 +21,12 @@ import IDL from './holo_token_airdrop_solana.json';
 import { ConnectedSolanaWallet } from '@privy-io/react-auth';
 import { useSendTransaction } from '@privy-io/react-auth/solana';
 import {
-  airdropTokenMint,
-  lutAddress,
+  // airdropTokenMint,
+  DevnetProgramId,
+  // lutAddress,
   solanaRPCEndpoint,
+  DevnetAirdropTokenMint,
+  DevnetLutAddress,
 } from '@/utils/constants';
 
 const MERKLE_ROOT_SEEDS = Buffer.from('merkle_root');
@@ -42,6 +45,11 @@ export const useAirdropClaimSol = () => {
   const { sendTransaction } = useSendTransaction();
 
   //#region Main Functions
+
+  // Set the devnet addresses
+  IDL.address = DevnetProgramId.toBase58();
+  const airdropTokenMint = DevnetAirdropTokenMint;
+  const lutAddress = DevnetLutAddress;
 
   const claim = async ({
     proofInfo,
