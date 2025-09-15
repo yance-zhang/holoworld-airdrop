@@ -6,294 +6,425 @@ import {
   getBscEligibilityProof,
   getSolanaEligibilityProof,
 } from '@/api';
-import {
-  evmContractAddress,
-  SignData,
-  useAirdropClaimOnBSC,
-  useGenerateAirdropSignature,
-} from '@/contract/bnb';
-import { SolSignedData, useAirdropClaimOnSolana } from '@/contract/solana';
+import { EvmSignedData, useAirdropClaimEvm } from '@/contract/bnb';
+import { SolSignedData, useAirdropClaimSol } from '@/contract/solana';
 import { shortenAddress } from '@/utils';
 import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { PublicKey } from '@solana/web3.js';
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import React, { createContext, useCallback, useContext, useState } from 'react';
-import { Address } from 'viem';
-import { useChainId, useDisconnect, useSignMessage } from 'wagmi';
-import ConnectWallet from '../components/ConnectWallet';
-import { useToast } from './ToastContext';
+import { Address, formatEther } from 'viem';
+import { ConnectedSolanaWallet } from '@privy-io/react-auth/solana';
+import { ConnectedWallet } from '@privy-io/react-auth';
 
 interface AppStoreContextType {
+  // EVM
+  evmVerifyAddress: string;
+  setEvmVerifyAddress: (evmVerifyAddress: string) => void;
   evmReceiverAddress: string;
-  setEvmReceiverAddress: (address: string) => void;
-  reset: () => void;
-  evmOpen: boolean;
-  openEvm: () => void;
-  closeEvm: () => void;
-  disconnectEvmAddress: (index: number) => void;
-  evmAddressList: AirdropProof[];
-  evmSignData: Record<string, SignData | undefined>[];
-  onEvmConnected: (address: string) => void;
+  setEvmReceiverAddress: (evmReceiverAddress: string) => void;
+  evmVerifyWalletSignData: EvmSignedData | null;
+  evmVerifyWalletAidropProof: AirdropProof | null;
+  disconnectEvmVerifyAddress: () => void;
+  onEvmVerifyAddressConnected: (
+    connectedVerifyWallet: ConnectedWallet
+  ) => Promise<{ isValid: boolean; errorMessage: string }>;
+  onEvmReceiverAddressConnected: (
+    connectedVerifyWallet: ConnectedWallet
+  ) => Promise<{
+    isValid: boolean;
+    errorMessage: string;
+  }>;
+
+  // SOL
+  solVerifyAddress: string;
+  setSolVerifyAddress: (solVerifyAddress: string) => void;
   solReceiverAddress: string;
-  setSolReceiverAddress: (address: string) => void;
-  openSol: () => void;
-  closeSol: () => void;
-  solAddressList: AirdropProof[];
-  solSignedData?: SolSignedData;
-  onSolConnected: (address: string) => void;
-  disconnectSolAddress: () => void;
+  setSolReceiverAddress: (solReceiverAddress: string) => void;
+  solVerifyWalletSignData: SolSignedData | null;
+  solVerifyWalletAidropProof: AirdropProof | null;
+  disconnectSolVerifyAddress: () => void;
+  onSolVerifyAddressConnected: (
+    connectedVerifyWallet: ConnectedSolanaWallet
+  ) => Promise<{ isValid: boolean; errorMessage: string }>;
+  onSolReceiverAddressConnected: (
+    connectedVerifyWallet: ConnectedSolanaWallet
+  ) => Promise<{
+    isValid: boolean;
+    errorMessage: string;
+  }>;
 }
 
-const AppStoreContext = createContext<AppStoreContextType>({
-  evmReceiverAddress: '',
-  setEvmReceiverAddress(address) {},
-  reset() {},
-  // evm
-  evmOpen: false,
-  evmAddressList: [],
-  evmSignData: [],
-  openEvm: () => {},
-  closeEvm: () => {},
-  onEvmConnected(address) {},
-  disconnectEvmAddress(index) {},
-
-  // sol
-  solReceiverAddress: '',
-  setSolReceiverAddress(address) {},
-  openSol: () => {},
-  closeSol: () => {},
-  solAddressList: [],
-  onSolConnected(address) {},
-  disconnectSolAddress() {},
-});
+const AppStoreContext = createContext<AppStoreContextType>(
+  {} as AppStoreContextType
+);
 
 export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  // EVM
-  const { generateSignature, signature } = useGenerateAirdropSignature();
-  const chainId = useChainId();
-  const { addToast } = useToast();
-  const { disconnect: disconnectEvm } = useDisconnect();
-  const { hasClaimed } = useAirdropClaimOnBSC();
+  //#region EVM
+
+  //#region Hooks
+
+  const { signClaimReward: signClaimRewardEvm, hasClaimed: hasClaimedEvm } =
+    useAirdropClaimEvm();
+
+  //#endregion
+
+  //#region State
+
   const [evmReceiverAddress, setEvmReceiverAddress] = useState<string>('');
-  const [evmOpen, setEvmOpen] = useState<boolean>(false);
-  const [evmAddressList, setEvmAddressList] = useState<AirdropProof[]>([]);
-  const [evmSignData, setEvmSignData] = useState<
-    Record<string, SignData | undefined>[]
-  >([]);
-  const { signMessageAsync } = useSignMessage();
+  const [evmVerifyAddress, setEvmVerifyAddress] = useState<string>('');
+  const [evmVerifyWalletAidropProof, setEvmVerifyWalletAidropProof] =
+    useState<AirdropProof | null>(null);
+  const [evmVerifyWalletSignData, setEvmVerifyWalletSignData] =
+    useState<EvmSignedData | null>(null);
 
-  const openEvm = () => setEvmOpen(true);
+  //#endregion
 
-  const closeEvm = () => setEvmOpen(false);
+  //#region Functions
 
-  const onEvmConnected = useCallback(
-    async (address: string) => {
+  const onEvmVerifyAddressConnected = useCallback(
+    async (
+      connectedVerifyWallet: ConnectedWallet
+    ): Promise<{ isValid: boolean; errorMessage: string }> => {
       try {
-        const index = evmAddressList.findIndex(
-          (addr) => addr.address === address,
+        const tipInfoRes = await getAuthTextTemplate(
+          connectedVerifyWallet.address
         );
-        if (index > -1 || !evmReceiverAddress) {
-          return;
-        }
-
-        const tipInfoRes = await getAuthTextTemplate(address);
-
         const { tip_info } = tipInfoRes;
-        const signature = await signMessageAsync({ message: tip_info });
-
-        const res = await getBscEligibilityProof(address, signature);
+        const signature = await connectedVerifyWallet.sign(tip_info);
+        let res = await getBscEligibilityProof(
+          connectedVerifyWallet.address,
+          signature
+        );
 
         if (res.error) {
-          addToast(`Account: ${shortenAddress(address)} is not eligible.`);
-          disconnectEvm();
-          return;
+          throw Error(
+            `Account: ${shortenAddress(connectedVerifyWallet.address)} is not eligible.`
+          );
         }
+
         if (
           res.proofs[0].proof === undefined ||
           res.proofs[0].proof.length === 0
         ) {
-          addToast(`Server busy, please try again later.`, 'warning');
-          return;
+          throw Error(`Server busy, please try again later.`);
         }
 
-        // check claimed and sign reward
-        let proofMap: Record<string, SignData | undefined> = {};
-        for (let i = 0; i < res.proofs.length; i++) {
-          const currentProof = res.proofs[i];
-          const claimed = await hasClaimed({
+        let totalClaimed = 0;
+        for (let index = 0; index < res.proofs.length; index++) {
+          const currentProof = res.proofs[index];
+          const claimed = await hasClaimedEvm({
             phase: currentProof.phase,
             address: currentProof.address,
             amount: currentProof.amount,
+            connectedVerifyWallet: connectedVerifyWallet,
           });
 
           if (claimed) {
-            proofMap[currentProof.phase] = undefined;
-          } else {
-            const signData = await generateSignature({
-              chainId: BigInt(chainId),
-              contractAddress: evmContractAddress,
-              receiverAddress: evmReceiverAddress as Address,
-              amount: BigInt(res.proofs[0].amount),
-              proof: res.proofs[0].proof as any[],
-              expiredAt: Math.floor(Date.now() / 1000) + 3600,
-            });
-
-            proofMap[currentProof.phase] = signData;
+            totalClaimed += Number(formatEther(BigInt(currentProof.amount)));
           }
+
+          res.proofs[index].claimed = claimed;
         }
 
-        setEvmSignData([...evmSignData, proofMap]);
-        setEvmAddressList([...evmAddressList, res]);
-        disconnectEvm();
-      } catch (error) {
-        console.log(error);
-        disconnectEvm();
+        res.claimed = totalClaimed;
+        setEvmVerifyWalletAidropProof(res);
+
+        return {
+          isValid: true,
+          errorMessage: '',
+        };
+      } catch (error: any) {
+        console.error(error);
+        return {
+          isValid: false,
+          errorMessage:
+            error.message ?? 'Unexpected erorr! Please try again later.',
+        };
       }
     },
-    [
-      evmAddressList,
-      evmReceiverAddress,
-      signMessageAsync,
-      generateSignature,
-      chainId,
-      addToast,
-      disconnectEvm,
-      evmSignData,
-    ],
+    [evmReceiverAddress, hasClaimedEvm]
   );
 
-  const disconnectEvmAddress = (index: number) => {
-    if (index < 0 || index >= evmAddressList.length) {
-      return;
-    }
-    const newEvmList = [...evmAddressList];
-    newEvmList.splice(index, 1);
-    setEvmAddressList(newEvmList);
-    const newSignDataList = [...evmSignData];
-    newSignDataList.splice(index, 1);
-    setEvmSignData(newSignDataList);
-    disconnectEvm();
+  const onEvmReceiverAddressConnected = useCallback(
+    async (
+      connectedReceiverWallet: ConnectedWallet
+    ): Promise<{
+      isValid: boolean;
+      errorMessage: string;
+    }> => {
+      try {
+        if (!evmVerifyWalletAidropProof) {
+          throw Error(
+            'Missing validation for wallet! Please re-connect verify wallet.'
+          );
+        }
+
+        // check claimed and sign reward
+        for (const currentProof of evmVerifyWalletAidropProof.proofs) {
+          if (currentProof.proof === undefined) {
+            continue;
+          }
+
+          if (currentProof.claimed) {
+            continue;
+          }
+
+          // This is the first proof that is not claimed or undefined
+          // so we are gonna use it for the sign and actual claim request
+          const chainId = BigInt(56);
+          const amount = BigInt(currentProof.amount);
+          const proof = currentProof.proof as any[];
+          const expireAt = Math.floor(Date.now() / 1000) + 3600;
+          const phase = currentProof.phase;
+
+          const signData = await signClaimRewardEvm({
+            chainId,
+            receiverAddress: evmReceiverAddress as Address,
+            amount,
+            proof,
+            expireAt,
+            phase,
+            connectedReceiverWallet,
+          });
+          setEvmVerifyWalletSignData(signData ? signData : null);
+          break;
+        }
+
+        return {
+          isValid: true,
+          errorMessage: '',
+        };
+      } catch (error: any) {
+        console.error(error);
+        return {
+          isValid: false,
+          errorMessage:
+            error.message ?? 'Unexpected erorr! Please try again later.',
+        };
+      }
+    },
+    [evmReceiverAddress, hasClaimedEvm]
+  );
+
+  const disconnectEvmVerifyAddress = () => {
+    setEvmVerifyWalletAidropProof(null);
+    setEvmVerifyWalletSignData(null);
+    // disconnectEvm();
   };
 
-  // SOL
-  const { setVisible } = useWalletModal();
-  const { signMessage, publicKey, disconnect: disconnectSolana } = useWallet();
-  const { signClaimReward } = useAirdropClaimOnSolana();
-  // const [solOpen, setSolOpen] = useState<boolean>(false);
+  //#endregion
+
+  //#endregion
+
+  //#region SOL
+
+  //#region Hooks
+
+  const { signClaimReward: signClaimRewardSol, hasClaimed: hasClaimedSol } =
+    useAirdropClaimSol();
+
+  //#endregion
+
+  //#region State
+
   const [solReceiverAddress, setSolReceiverAddress] = useState<string>('');
-  const [solAddressList, setSolAddressList] = useState<AirdropProof[]>([]);
-  const [solSignedData, setSolSignedData] = useState<SolSignedData>();
+  const [solVerifyAddress, setSolVerifyAddress] = useState<string>('');
+  const [solVerifyWalletAidropProof, setSolVerifyWalletAidropProof] =
+    useState<AirdropProof | null>(null);
+  const [solVerifyWalletSignData, setSolVerifyWalletSignData] =
+    useState<SolSignedData | null>(null);
 
-  const openSol = () => setVisible(true);
+  //#endregion
 
-  const closeSol = () => setVisible(false);
+  //#region Functions
 
-  const onSolConnected = useCallback(
-    async (address: string) => {
-      console.log(address);
-      if (
-        solAddressList.find((addr) => addr.address === address) ||
-        solAddressList.length === 1
-      ) {
-        return;
-      }
-
+  const onSolVerifyAddressConnected = useCallback(
+    async (
+      connectedVerifyWallet: ConnectedSolanaWallet
+    ): Promise<{ isValid: boolean; errorMessage: string }> => {
       try {
-        const infoRes = await getAuthTextTemplate(address);
-        console.log(infoRes);
+        const infoRes = await getAuthTextTemplate(
+          connectedVerifyWallet.address
+        );
 
         if (!infoRes) {
-          console.log('error when getting template');
-          return; // Add return here
+          throw Error('Error when getting template!');
         }
 
         const message = infoRes.tip_info;
-
-        const signature = await signMessage!(Buffer.from(message));
+        const signature = await connectedVerifyWallet.signMessage!(
+          Buffer.from(message)
+        );
         const signatureString = bs58.encode(signature);
-
-        const res = await getSolanaEligibilityProof(address, signatureString);
-        setSolAddressList([...solAddressList, res]);
+        let res = await getSolanaEligibilityProof(
+          connectedVerifyWallet.address,
+          signatureString
+        );
 
         if (res.error) {
-          addToast(`Account: ${shortenAddress(address)} is not eligible.`);
-          disconnectSolana();
-          return;
+          throw Error(
+            `Account: ${shortenAddress(connectedVerifyWallet.address)} is not eligible.`
+          );
         }
 
-        if (!solReceiverAddress) {
-          return;
-        }
         if (
           res.proofs[0].proof === undefined ||
           res.proofs[0].proof.length === 0
         ) {
-          addToast(`Server busy, please try again later.`, 'warning');
-          return;
+          throw Error('Server busy, please try again later.');
         }
-        const proof = res.proofs[0].proof.map((x) => Buffer.from(x, 'hex'));
-        const proofBuf = Buffer.concat(proof);
-        const expireAt = Math.floor(Date.now() / 1000) + 3600;
 
-        const signRes = await signClaimReward(
-          proofBuf,
-          new PublicKey(solReceiverAddress),
-          expireAt,
-        );
+        // Check if the user has already claimed (check for each phase)
+        let totalClaimed = 0;
+        for (let index = 0; index < res.proofs.length; index++) {
+          const currentProof = res.proofs[index];
+          const phase = currentProof.phase;
+          const claimed = await hasClaimedSol({
+            phase,
+            connectedVerifyWallet,
+          });
 
-        setSolSignedData(signRes);
-      } catch (error) {
-        disconnectSolana();
-        console.log(error);
+          if (claimed) {
+            totalClaimed += Number(currentProof.amount) / LAMPORTS_PER_SOL;
+          }
+
+          res.proofs[index].claimed = claimed;
+        }
+
+        res.claimed = totalClaimed;
+
+        // Set the proof
+        setSolVerifyWalletAidropProof(res);
+
+        return {
+          isValid: true,
+          errorMessage: '',
+        };
+      } catch (error: any) {
+        console.error(error);
+
+        return {
+          isValid: false,
+          errorMessage:
+            error.message ?? 'Unexpected erorr! Please try again later.',
+        };
       }
     },
-    [publicKey, solAddressList, solReceiverAddress],
+    [
+      hasClaimedSol,
+      getAuthTextTemplate,
+      getSolanaEligibilityProof,
+      setSolVerifyWalletAidropProof,
+      setSolVerifyWalletSignData,
+      shortenAddress,
+      solReceiverAddress,
+    ]
   );
 
-  const disconnectSolAddress = () => {
-    setSolAddressList([]);
-    setSolSignedData(undefined);
-    disconnectSolana();
+  const onSolReceiverAddressConnected = useCallback(
+    async (
+      connectedReceiverWallet: ConnectedSolanaWallet
+    ): Promise<{
+      isValid: boolean;
+      errorMessage: string;
+    }> => {
+      try {
+        if (!solVerifyWalletAidropProof) {
+          throw Error(
+            'Missing validation for wallet! Please re-connect verify wallet.'
+          );
+        }
+
+        for (const currentProof of solVerifyWalletAidropProof.proofs) {
+          if (currentProof.proof === undefined) {
+            continue;
+          }
+
+          if (currentProof.claimed) {
+            continue;
+          }
+
+          // This is the first proof that is not claimed or undefined
+          // so we are gonna use it for the sign and actual claim request
+          const proof = currentProof.proof.map((x) => Buffer.from(x, 'hex'));
+          const proofBuf = Buffer.concat(proof);
+          const expireAt = Math.floor(Date.now() / 1000) + 3600;
+          const amount = currentProof.amount;
+          const signRes = await signClaimRewardSol(
+            proofBuf,
+            connectedReceiverWallet,
+            expireAt,
+            Number(amount)
+          );
+          setSolVerifyWalletSignData(signRes);
+          break;
+        }
+
+        return {
+          isValid: true,
+          errorMessage: '',
+        };
+      } catch (error: any) {
+        console.error(error);
+
+        return {
+          isValid: false,
+          errorMessage:
+            error.message ?? 'Unexpected erorr! Please try again later.',
+        };
+      }
+    },
+    [
+      hasClaimedSol,
+      getAuthTextTemplate,
+      getSolanaEligibilityProof,
+      setSolVerifyWalletAidropProof,
+      setSolVerifyWalletSignData,
+      shortenAddress,
+      signClaimRewardSol,
+      solReceiverAddress,
+    ]
+  );
+
+  const disconnectSolVerifyAddress = () => {
+    setSolVerifyWalletAidropProof(null);
+    setSolVerifyWalletSignData(null);
+    // disconnectSol();
   };
 
-  const reset = () => {
-    setSolReceiverAddress('');
-    setEvmReceiverAddress('');
-    setEvmAddressList([]);
-    setSolAddressList([]);
-    setEvmSignData([]);
-  };
+  //#endregion
+
+  //#endregion
 
   return (
     <AppStoreContext.Provider
       value={{
-        // evm
-        evmOpen,
+        // EVM
+        evmVerifyAddress,
+        setEvmVerifyAddress,
         evmReceiverAddress,
-        evmAddressList,
-        evmSignData,
-        openEvm,
-        closeEvm,
-        onEvmConnected,
-        disconnectEvmAddress,
         setEvmReceiverAddress,
-        reset,
-        // sol
+        evmVerifyWalletSignData,
+        evmVerifyWalletAidropProof,
+        disconnectEvmVerifyAddress,
+        onEvmVerifyAddressConnected,
+        onEvmReceiverAddressConnected,
+
+        // SOL
+        solVerifyAddress,
+        setSolVerifyAddress,
         solReceiverAddress,
-        solAddressList,
-        solSignedData,
-        openSol,
-        closeSol,
-        onSolConnected,
         setSolReceiverAddress,
-        disconnectSolAddress,
+        solVerifyWalletSignData,
+        solVerifyWalletAidropProof,
+        disconnectSolVerifyAddress,
+        onSolVerifyAddressConnected,
+        onSolReceiverAddressConnected,
       }}
     >
       {children}
-      <ConnectWallet open={evmOpen} onClose={closeEvm} />
     </AppStoreContext.Provider>
   );
 };

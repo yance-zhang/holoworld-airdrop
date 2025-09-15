@@ -23,47 +23,47 @@ const ClaimModal: FC<{
 
   return createPortal(
     <dialog open={open} className="modal bg-black/50">
-      <div className="modal-box w-[440px] max-w-[440px] p-6 bg-[#F6F6F6] rounded-[20px]">
+      <div className="modal-box w-[440px] max-w-[440px] rounded-[20px] bg-[#F6F6F6] p-6">
         <button
-          className="btn btn-xs btn-circle btn-ghost absolute right-6 top-6"
+          className="btn btn-circle btn-ghost btn-xs absolute right-6 top-6"
           onClick={onClose}
         >
           <CloseIcon />
         </button>
         <div className="flex flex-col gap-6">
-          <div className="text-center text-lg font-bold leading-tight text-yellow">
+          <div className="text-yellow text-center text-lg font-bold leading-tight">
             Claim Token
           </div>
 
           <div
-            className="flex flex-col gap-3 py-8 px-3 rounded-2xl bg-no-repeat bg-cover"
+            className="flex flex-col gap-3 rounded-2xl bg-cover bg-no-repeat px-3 py-8"
             style={{
               background: `url(${ClaimBg.src})`,
             }}
           >
-            <span className="font-medium text-sm">
+            <span className="text-sm font-medium">
               Total amount to be claimed
             </span>
             <span className="flex items-end gap-2 font-[PPMonumentExtended]">
-              <span className="font-bold text-[30px]">12,312</span>
-              <span className="font-medium text-xs text-black/80">$HOLO</span>
+              <span className="text-[30px] font-bold">12,312</span>
+              <span className="text-xs font-medium text-black/80">$HOLO</span>
             </span>
           </div>
 
           <div className="grid grid-cols-2 items-center gap-3">
-            <span className="font-medium text-sm text-black/65">Network</span>
-            <span className="flex items-center justify-end gap-2 self-end font-semibold text-lg text-black">
+            <span className="text-sm font-medium text-black/65">Network</span>
+            <span className="flex items-center justify-end gap-2 self-end text-lg font-semibold text-black">
               <network.icon /> {network.name}
             </span>
-            <span className="font-medium text-sm text-black/65">Gas Fee</span>
-            <span className="flex items-center justify-end gap-2 self-end font-semibold text-lg text-black">
+            <span className="text-sm font-medium text-black/65">Gas Fee</span>
+            <span className="flex items-center justify-end gap-2 self-end text-lg font-semibold text-black">
               0.0003{' '}
-              <span className="text-xs text-black/65 pt-1">{network.name}</span>
+              <span className="pt-1 text-xs text-black/65">{network.name}</span>
             </span>
           </div>
 
           <button
-            className="btn mt-3 w-full rounded-full border-none text-black/95 font-bold text-sm"
+            className="btn mt-3 w-full rounded-full border-none text-sm font-bold text-black/95"
             onClick={handleClaim}
             style={{
               background:
@@ -75,7 +75,7 @@ const ClaimModal: FC<{
         </div>
       </div>
     </dialog>,
-    document.body,
+    document.body
   );
 };
 

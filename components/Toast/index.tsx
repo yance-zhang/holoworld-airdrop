@@ -32,7 +32,7 @@ const Toast: React.FC<ToastProps> = ({
   };
 
   return createPortal(
-    <div className="toast toast-top toast-end z-50">
+    <div className="toast toast-end toast-top z-50">
       <div className={`alert ${typeStyles[type]} max-w-sm`}>
         <span>{message}</span>
         <button className="btn btn-ghost btn-sm" onClick={onClose}>
@@ -40,7 +40,7 @@ const Toast: React.FC<ToastProps> = ({
         </button>
       </div>
     </div>,
-    document.body,
+    document.body
   );
 };
 

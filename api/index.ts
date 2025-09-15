@@ -47,6 +47,7 @@ export type AirdropProof = {
   address: string;
   total: string;
   unlocked: string;
+  claimed?: string | number;
   detail: {
     launch_agent_token?: string;
     burn_airdrop?: string;
@@ -58,6 +59,7 @@ export type AirdropProof = {
     address: string;
     amount: string;
     index: number;
+    claimed?: boolean;
     proof?: string[];
   }[];
   error?: string;

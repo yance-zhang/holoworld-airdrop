@@ -9,20 +9,20 @@ const DisclaimerModal: FC<{
 }> = ({ open, onClose, onConfirm }) => {
   return createPortal(
     <dialog open={open} className="modal bg-black/50">
-      <div className="modal-box w-[90vw] lg:w-[440px] max-w-[440px] p-6 bg-[#121212] rounded-[20px]">
+      <div className="modal-box w-[90vw] max-w-[440px] rounded-[20px] bg-[#121212] p-6 lg:w-[440px]">
         <button
-          className="btn btn-xs btn-circle btn-ghost absolute right-6 top-6"
+          className="btn btn-circle btn-ghost btn-xs absolute right-6 top-6"
           onClick={onClose}
         >
           <CloseIcon />
         </button>
         <div className="flex flex-col gap-4">
-          <div className="text-center text-lg font-bold leading-tight text-yellow">
+          <div className="text-yellow text-center text-lg font-bold leading-tight">
             Disclaimer
           </div>
 
-          <div className="text-sm text-white/80 leading-5 tracking-tight max-h-[350px] max-w-prose whitespace-pre-wrap break-words overflow-scroll">
-            <h3 className="text-lg text-center mb-2">
+          <div className="max-h-[350px] max-w-prose overflow-scroll whitespace-pre-wrap break-words text-sm leading-5 tracking-tight text-white/80">
+            <h3 className="mb-2 text-center text-lg">
               Important Disclaimers and Acknowledgement of Terms of Use for the
               $HOLO Airdrop Programme
             </h3>
@@ -69,16 +69,19 @@ We may collect certain information relating to you when you participate in the A
 If you do not accept any of these terms, you may not proceed with the claim. `}
           </div>
 
-          <div className="grid grid-cols-3 gap-2 mt-3">
+          <div className="mt-3 grid grid-cols-3 gap-2">
             <button
-              className="btn rounded-full border-none text-white/80 font-bold text-sm"
+              className="btn rounded-full border-none text-sm font-bold text-white/80"
               onClick={onClose}
             >
               Decline
             </button>
             <button
-              className="btn col-span-2 rounded-full border-none text-black/95 font-bold text-sm"
-              onClick={onConfirm}
+              className="btn col-span-2 rounded-full border-none text-sm font-bold text-black/95"
+              onClick={() => {
+                onConfirm();
+                onClose();
+              }}
               style={{
                 background:
                   'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
@@ -90,7 +93,7 @@ If you do not accept any of these terms, you may not proceed with the claim. `}
         </div>
       </div>
     </dialog>,
-    document.body,
+    document.body
   );
 };
 

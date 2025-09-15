@@ -2,80 +2,130 @@ import { useCallback, useState } from 'react';
 import {
   Address,
   concat,
+  createPublicClient,
+  createWalletClient,
+  custom,
   encodePacked,
   Hash,
   Hex,
   keccak256,
-  toBytes,
 } from 'viem';
-import {
-  useAccount,
-  usePublicClient,
-  useSignMessage,
-  useWriteContract,
-} from 'wagmi';
+import { bsc } from 'viem/chains';
 import airdropAbi from './holo_airdrop.abi.json';
+import { ConnectedWallet, useSendTransaction } from '@privy-io/react-auth';
+import { evmContractAddress } from '@/utils/constants';
+import { AirdropProof } from '@/api';
 
-const contractAddress = '0x6A1E5F3955c095382c224B75859331f683E2d1ef';
-export const evmContractAddress = contractAddress;
-
-export interface SignData {
+export interface EvmSignedData {
   user: Address;
   amount: bigint;
   proof: Hash[];
   expiredAt: bigint;
   signature: Hash;
+  phase: number;
 }
 
-interface ClaimStatus {
-  isLoading: boolean;
-  isSuccess: boolean;
-  isError: boolean;
-  error: Error | null;
-  transactionHash?: Hash;
-}
+export function useAirdropClaimEvm() {
+  //#region Main Functions
 
-// 定义生成签名的函数所需参数
-interface GenerateSignatureParams {
-  chainId: bigint; // Chain ID (e.g., Sepolia is 11155111n)
-  contractAddress: Address; // Airdrop contract address
-  receiverAddress: Address; // Receiver address for multiClaim
-  amount: bigint; // Airdrop amount (in wei)
-  proof: Hex[]; // Merkle Proof
-  expiredAt: number; // Signature expiration timestamp (seconds)
-}
+  const claim = async ({
+    proofInfo,
+    signedData,
+    connectedReceiverWallet,
+  }: {
+    proofInfo: AirdropProof;
+    signedData: EvmSignedData;
+    connectedReceiverWallet: ConnectedWallet;
+  }) => {
+    try {
+      // Get the ethereum provider from the ConnectedWallet
+      const provider = await connectedReceiverWallet.getEthereumProvider();
 
-/**
- * Custom hook to generate a signature for Airdrop contract's multiClaim
- * @param params - Parameters required for generating the signature
- * @returns - Object containing the SignData, loading state, and error
- */
-export function useGenerateAirdropSignature() {
-  // Get the connected account address using wagmi's useAccount
-  const { address: userAddress } = useAccount();
+      // Create a Viem wallet client from the provider
+      const walletClient = createWalletClient({
+        account: connectedReceiverWallet.address as Address,
+        chain: bsc,
+        transport: custom(provider),
+      });
 
-  // Use wagmi's useSignMessage hook for signing
-  const { signMessageAsync, data: signature, error } = useSignMessage();
+      // Create a Viem public client from the provider
+      const publicClient = createPublicClient({
+        chain: bsc,
+        transport: custom(provider),
+      });
 
-  // Function to generate the signature
-  const generateSignature = async (
-    params: GenerateSignatureParams,
-  ): Promise<SignData | undefined> => {
-    const {
-      chainId,
-      contractAddress,
-      receiverAddress,
-      amount,
-      proof,
-      expiredAt,
-    } = params;
-    console.log('generate params: ', params);
+      // Send the claim transaction using wallet client
+      const hash = await walletClient.writeContract({
+        address: evmContractAddress,
+        abi: airdropAbi,
+        functionName: 'claim',
+        args: [signedData.phase, signedData.amount, signedData.proof],
+      });
 
+      // Wait for transaction receipt
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      return receipt;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  };
+
+  const hasClaimed = async ({
+    phase,
+    address,
+    amount,
+    connectedVerifyWallet,
+  }: {
+    phase: number;
+    address: string;
+    amount: string;
+    connectedVerifyWallet: ConnectedWallet;
+  }): Promise<boolean> => {
+    try {
+      // Get the ethereum provider from the ConnectedWallet
+      const provider = await connectedVerifyWallet.getEthereumProvider();
+
+      // Create a Viem public client from the provider
+      const publicClient = createPublicClient({
+        transport: custom(provider),
+      });
+
+      const leaf = createLeaf(phase, address, amount);
+      const result = await publicClient.readContract({
+        address: evmContractAddress,
+        abi: airdropAbi,
+        functionName: 'claimed',
+        args: [phase, '0x' + leaf.toString('hex')],
+      });
+      return result as boolean;
+    } catch (error) {
+      console.error('Error checking claim status:', error);
+      return false;
+    }
+  };
+
+  const signClaimReward = async ({
+    chainId,
+    receiverAddress,
+    amount,
+    proof,
+    expireAt,
+    phase,
+    connectedReceiverWallet,
+  }: {
+    chainId: bigint;
+    receiverAddress: Address;
+    amount: bigint;
+    proof: Hex[];
+    expireAt: number;
+    phase: number;
+    connectedReceiverWallet: ConnectedWallet;
+  }): Promise<EvmSignedData | undefined> => {
     try {
       // --- Step 1: Calculate proof hash ---
       // Use viem's concat and keccak256 to mimic abi.encodePacked(proof)
       const proofHash = keccak256(concat(proof));
-      console.log('Proof Hash:', proofHash);
 
       // --- Step 2: Build the message hash to sign ---
       // Mimic Solidity's abi.encodePacked(block.chainid, address(this), proofHash, _expectReciver, data.expiredAt)
@@ -84,32 +134,29 @@ export function useGenerateAirdropSignature() {
           ['uint256', 'address', 'bytes32', 'address', 'uint64'],
           [
             chainId,
-            contractAddress,
+            evmContractAddress,
             proofHash,
             receiverAddress,
-            BigInt(expiredAt),
-          ],
-        ),
+            BigInt(expireAt),
+          ]
+        )
       );
-      console.log('Message Hash to Sign:', messageHash);
 
       // --- Step 3: Sign the message hash ---
       // Use signMessageAsync to sign the hash (requires connected wallet)
-      const signature = await signMessageAsync({
-        message: { raw: toBytes(messageHash) },
-      });
-
-      if (!userAddress) {
-        throw new Error('No connected wallet found');
-      }
+      // const signature = await signMessageAsync({
+      //   message: { raw: toBytes(messageHash) },
+      // });
+      const signature = await connectedReceiverWallet.sign(messageHash);
 
       // Return the complete SignData object
       return {
-        user: userAddress,
+        user: connectedReceiverWallet.address as `0x${string}`,
         amount,
         proof,
-        expiredAt: BigInt(expiredAt),
-        signature,
+        phase,
+        expiredAt: BigInt(expireAt),
+        signature: signature as `0x${string}`,
       };
     } catch (err) {
       console.error('Error generating signature:', err);
@@ -117,22 +164,9 @@ export function useGenerateAirdropSignature() {
     }
   };
 
-  return {
-    generateSignature,
-    signature,
-    error,
-  };
-}
+  //#endregion
 
-export function useAirdropClaimOnBSC() {
-  const publicClient = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
-  const [claimStatus, setClaimStatus] = useState<ClaimStatus>({
-    isLoading: false,
-    isSuccess: false,
-    isError: false,
-    error: null,
-  });
+  //#region Helpers
 
   function createLeaf(phase: number, address: string, amount: string): Buffer {
     const types = ['uint8', 'address', 'uint256'] as const;
@@ -143,180 +177,11 @@ export function useAirdropClaimOnBSC() {
     return Buffer.from(hash, 'hex');
   }
 
-  // Single claim function
-  const claim = useCallback(
-    async (phase: number, amount: bigint, proof: Hash[]) => {
-      if (!publicClient) {
-        throw new Error('Public client undefined');
-      }
-      setClaimStatus({
-        isLoading: true,
-        isSuccess: false,
-        isError: false,
-        error: null,
-      });
-
-      try {
-        const hash = await writeContractAsync({
-          address: contractAddress,
-          abi: airdropAbi,
-          functionName: 'claim',
-          args: [phase, amount, proof],
-        });
-
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-        setClaimStatus({
-          isLoading: false,
-          isSuccess: receipt.status === 'success',
-          isError: false,
-          error: null,
-          transactionHash: hash,
-        });
-
-        return receipt;
-      } catch (error) {
-        setClaimStatus({
-          isLoading: false,
-          isSuccess: false,
-          isError: true,
-          error: error instanceof Error ? error : new Error('Claim failed'),
-        });
-        throw error;
-      }
-    },
-    [publicClient, writeContractAsync],
-  );
-
-  // Multi claim function
-  const multiClaim = useCallback(
-    async (dataList: Record<string, SignData | undefined>[]) => {
-      if (!publicClient) {
-        throw new Error('Public client undefined');
-      }
-      setClaimStatus({
-        isLoading: true,
-        isSuccess: false,
-        isError: false,
-        error: null,
-      });
-
-      try {
-        console.log('Multi claim data list:', dataList);
-
-        const maxPhase = 8;
-        // phase loop
-        for (let currentPhase = 1; currentPhase < maxPhase; currentPhase++) {
-          const currentList: SignData[] = [];
-
-          // address loop
-          for (let i = 0; i < dataList.length; i++) {
-            const addressPhaseMap = dataList[i];
-            const phaseProof = addressPhaseMap[currentPhase];
-            if (phaseProof) {
-              currentList.push(phaseProof);
-            }
-          }
-
-          if (currentList.length === 0) {
-            console.log(
-              `Phase ${currentPhase} - No addresses to claim, skipping...`,
-            );
-            continue;
-          }
-
-          console.log(
-            `Phase ${currentPhase} - Claiming for ${currentList.length} addresses`,
-          );
-
-          const hash = await writeContractAsync({
-            address: contractAddress,
-            abi: airdropAbi,
-            functionName: 'multiClaim',
-            args: [
-              currentPhase,
-              currentList.map((data) => ({
-                user: data.user,
-                amount: data.amount,
-                proof: data.proof,
-                expredAt: data.expiredAt,
-                signature: data.signature,
-              })),
-            ],
-          });
-          console.log(`Phase ${currentPhase} - Transaction sent: ${hash}`);
-        }
-
-        setClaimStatus({
-          isLoading: false,
-          isSuccess: true,
-          isError: false,
-          error: null,
-          // transactionHash: hash,
-        });
-
-        // return hash;
-      } catch (error) {
-        setClaimStatus({
-          isLoading: false,
-          isSuccess: false,
-          isError: true,
-          error:
-            error instanceof Error ? error : new Error('Multi claim failed'),
-        });
-        throw error;
-      }
-    },
-    [publicClient, writeContractAsync],
-  );
-
-  // Check if address has claimed for a specific phase
-  const hasClaimed = useCallback(
-    async ({
-      phase,
-      address,
-      amount,
-    }: {
-      phase: number;
-      address: string;
-      amount: string;
-    }): Promise<boolean> => {
-      if (!publicClient) {
-        throw new Error('Public client undefined');
-      }
-      try {
-        const leaf = createLeaf(phase, address, amount);
-        const result = await publicClient.readContract({
-          address: contractAddress,
-          abi: airdropAbi,
-          functionName: 'claimed',
-          args: [phase, leaf],
-        });
-        return result as boolean;
-      } catch (error) {
-        console.error('Error checking claim status:', error);
-        return false;
-      }
-    },
-    [publicClient],
-  );
-
-  // Reset claim status
-  const resetStatus = useCallback(() => {
-    setClaimStatus({
-      isLoading: false,
-      isSuccess: false,
-      isError: false,
-      error: null,
-      transactionHash: undefined,
-    });
-  }, []);
+  //#endregion
 
   return {
     claim,
-    multiClaim,
     hasClaimed,
-    claimStatus,
-    resetStatus,
+    signClaimReward,
   };
 }

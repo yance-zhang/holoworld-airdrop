@@ -6,6 +6,7 @@ const config: Config = {
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './utils/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
@@ -18,6 +19,20 @@ const config: Config = {
         inter: ['var(--font-inter)'],
         chakra: ['var(--font-chakra)'],
         caesar: ['var(--font-caesar)'],
+      },
+      keyframes: {
+        enter: {
+          '0%': { transform: 'scale(0.9)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        leave: {
+          '0%': { transform: 'scale(1)', opacity: '1' },
+          '100%': { transform: 'scale(0.9)', opacity: '0' },
+        },
+      },
+      animation: {
+        enter: 'enter 200ms ease-out',
+        leave: 'leave 150ms ease-in forwards',
       },
     },
   },

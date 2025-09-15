@@ -8,20 +8,20 @@ const TermsModal: FC<{
 }> = ({ open, onClose }) => {
   return createPortal(
     <dialog open={open} className="modal bg-black/50">
-      <div className="modal-box w-[90vw] lg:w-[440px] max-w-[440px] p-6 bg-[#121212] rounded-[20px]">
+      <div className="modal-box w-[90vw] max-w-[440px] rounded-[20px] bg-[#121212] p-6 lg:w-[440px]">
         <button
-          className="btn btn-xs btn-circle btn-ghost absolute right-6 top-6"
+          className="btn btn-circle btn-ghost btn-xs absolute right-6 top-6"
           onClick={onClose}
         >
           <CloseIcon />
         </button>
         <div className="flex flex-col gap-4">
-          <div className="text-center text-lg font-bold leading-tight text-yellow">
+          <div className="text-yellow text-center text-lg font-bold leading-tight">
             Terms And Conditions
           </div>
 
-          <div className="text-sm text-white/80 leading-5 tracking-tight max-w-prose whitespace-pre-wrap break-words max-h-[350px] overflow-scroll">
-            <h3 className="text-lg text-center">
+          <div className="max-h-[350px] max-w-prose overflow-scroll whitespace-pre-wrap break-words text-sm leading-5 tracking-tight text-white/80">
+            <h3 className="text-center text-lg">
               $HOLO AIRDROP PROGRAMME TERMS AND CONDITIONS
             </h3>
             {`
@@ -281,7 +281,7 @@ Claims excluded from arbitration under this section are subject to the choice of
           </div>
 
           <button
-            className="btn col-span-2 rounded-full border-none text-black/95 font-bold text-sm"
+            className="btn col-span-2 rounded-full border-none text-sm font-bold text-black/95"
             onClick={onClose}
             style={{
               background:
@@ -293,7 +293,7 @@ Claims excluded from arbitration under this section are subject to the choice of
         </div>
       </div>
     </dialog>,
-    document.body,
+    document.body
   );
 };
 

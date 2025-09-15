@@ -23,12 +23,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="relative flex flex-col items-center h-screen w-screen overflow-auto bg-cover bg-no-repeat bg-center">
-      <header className="w-full h-14 flex items-center justify-between py-2 px-4 border-b border-white/5">
+    <div className="relative flex h-screen w-screen flex-col items-center overflow-auto bg-cover bg-center bg-no-repeat">
+      <header className="flex h-14 w-full items-center justify-between border-b border-white/5 px-4 py-2">
         <LogoIcon className="" />
       </header>
-      <div className="relative flex flex-col items-center w-full">
-        <div className="absolute left-0 top-0 hidden lg:block pointer-events-none z-0">
+      <div className="relative flex w-full flex-col items-center">
+        <div className="pointer-events-none absolute left-0 top-0 z-0 hidden lg:block">
           <Image src={AirdropBg} className="w-100vw" alt="" />
         </div>
         {children}

@@ -15,14 +15,14 @@ const Stake: FC<{ amount: number }> = ({ amount }) => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center gap-12 w-full">
+    <div className="flex w-full flex-col items-center gap-12">
       <div className="flex flex-col items-center gap-3">
         <StakeIcon />
         <div className="flex items-end">
           <span className="font-[PPMonumentExtended] text-[30px]">
             {formatBalanceNumber(amount)}
           </span>
-          <span className="font-medium text-xs text-white/80">$HOLO</span>
+          <span className="text-xs font-medium text-white/80">$HOLO</span>
         </div>
         <span className="text-sm text-white/80">Successfully Claimed</span>
         <span className="text-sm text-white/80">
@@ -30,15 +30,17 @@ const Stake: FC<{ amount: number }> = ({ amount }) => {
         </span>
       </div>
 
-      <button
-        className="btn mt-3 w-[280px] lg:w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
-        style={{
-          background:
-            'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
-        }}
-      >
-        Stake $HOLO Now
-      </button>
+      {/* <a href="app.holoworld.com/stake-holo" className="" target="_blank">
+        <button
+          className="btn mt-3 w-[280px] lg:w-[360px] rounded-full border-none text-black/95 font-bold text-sm disabled:text-black/50"
+          style={{
+            background:
+              'linear-gradient(156.17deg, #08EDDF -8.59%, #8FEDA6 73.29%, #CEED8B 104.51%)',
+          }}
+        >
+          Stake $HOLO Now
+        </button>
+      </a> */}
     </div>
   );
 };
